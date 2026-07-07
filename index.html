@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="description" content="NEXPICKLE — Pickleball Club Command Center by NEXARCH Systems Engineering / CYRABELL Platform">
+<title>NEXPICKLE · Pickleball Club Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpolygon points='32,4 58,18 58,46 32,60 6,46 6,18' fill='%230B1F3A' stroke='%2300C2D1' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23C9F24B'/%3E%3Ccircle cx='28' cy='28' r='1.8' fill='%230B1F3A'/%3E%3Ccircle cx='36' cy='28' r='1.8' fill='%230B1F3A'/%3E%3Ccircle cx='32' cy='36' r='1.8' fill='%230B1F3A'/%3E%3Ccircle cx='26' cy='35' r='1.8' fill='%230B1F3A'/%3E%3Ccircle cx='38' cy='35' r='1.8' fill='%230B1F3A'/%3E%3C/svg%3E">
+<style>
+:root{
+  --navy:#0B1F3A; --navy-2:#0E2647; --panel:#122A4A; --panel-2:#183355;
+  --line:#1E3A61; --cyan:#00C2D1; --cyan-dim:#0891A0; --ball:#C9F24B;
+  --ink:#EAF2FB; --mut:#8FA3BF; --dim:#5C7495;
+  --ok:#3DDC84; --warn:#FFB020; --bad:#FF5D5D;
+  --r:12px; --shadow:0 10px 30px rgba(0,0,0,.35);
+  --font-d:'Chakra Petch',sans-serif; --font-b:'Inter',sans-serif; --font-m:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font-b);background:var(--navy);color:var(--ink);font-size:15px;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;
+  background:
+   linear-gradient(90deg,transparent calc(50% - 1px),var(--ball) calc(50% - 1px),var(--ball) calc(50% + 1px),transparent calc(50% + 1px)),
+   linear-gradient(0deg,transparent calc(38% - 1px),var(--cyan) calc(38% - 1px),var(--cyan) calc(38% + 1px),transparent calc(38% + 1px)),
+   linear-gradient(0deg,transparent calc(62% - 1px),var(--cyan) calc(62% - 1px),var(--cyan) calc(62% + 1px),transparent calc(62% + 1px));}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--cyan)}
+h1,h2,h3,.disp{font-family:var(--font-d)}
+.mono{font-family:var(--font-m)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 700px at 70% -10%,#15335C,transparent),var(--navy)}
+#login .card{width:min(400px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:34px 30px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+#login .card::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,var(--cyan),var(--ball))}
+.logo-row{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.hex{width:46px;height:46px;flex:none}
+.brand{font-family:var(--font-d);font-weight:700;font-size:24px;letter-spacing:.06em}
+.brand em{font-style:normal;color:var(--ball)}
+.tagline{font-family:var(--font-m);font-size:10.5px;color:var(--mut);letter-spacing:.22em;text-transform:uppercase;margin-bottom:24px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;font-family:var(--font-m)}
+.inp{width:100%;background:var(--navy-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--ink);outline:none;transition:border .15s}
+.inp:focus{border-color:var(--cyan)}
+select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 18px) 55%,calc(100% - 13px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:10px;padding:11px 18px;font-weight:600;cursor:pointer;transition:filter .15s,transform .05s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-p{background:linear-gradient(135deg,var(--cyan),#0aa7b6);color:#04222b;width:100%}
+.btn-g{background:var(--panel-2);border:1px solid var(--line);color:var(--ink)}
+.btn-ball{background:var(--ball);color:#22300a}
+.btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad)}
+.btn-sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.hint{font-size:12px;color:var(--dim);margin-top:14px;line-height:1.5}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none;height:100dvh;position:relative;z-index:1}
+#app.on{display:grid;grid-template-columns:232px 1fr;grid-template-rows:56px 1fr}
+aside{grid-row:1/3;background:var(--navy-2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px 10px;gap:2px;overflow-y:auto}
+aside .logo-row{padding:4px 8px 2px}
+aside .tagline{padding:0 8px;margin-bottom:16px}
+.nav-btn{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;background:none;border:none;color:var(--mut);cursor:pointer;font-weight:500;font-size:14px;text-align:left;width:100%}
+.nav-btn svg{width:19px;height:19px;flex:none}
+.nav-btn.on{background:var(--panel-2);color:var(--ink);box-shadow:inset 3px 0 0 var(--ball)}
+.nav-btn:hover{color:var(--ink)}
+.nav-sec{font-family:var(--font-m);font-size:10px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;padding:14px 12px 4px}
+header{grid-column:2;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--line);background:rgba(14,38,71,.6);backdrop-filter:blur(8px)}
+#viewTitle{font-size:17px;font-weight:600;letter-spacing:.03em}
+.spacer{flex:1}
+.pill{font-family:var(--font-m);font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mut);display:inline-flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+main{grid-column:2;overflow-y:auto;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+#tabbar{display:none}
+
+/* ---------- COMPONENTS ---------- */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.card h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.kpi .v{font-family:var(--font-d);font-size:30px;font-weight:700;line-height:1.05}
+.kpi .l{font-size:12px;color:var(--mut);margin-top:3px}
+.kpi .d{font-family:var(--font-m);font-size:11px;margin-top:7px}
+.up{color:var(--ok)}.dn{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-family:var(--font-m);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid rgba(30,58,97,.5);vertical-align:middle}
+tr:hover td{background:rgba(24,51,85,.4)}
+.tag{font-family:var(--font-m);font-size:10.5px;padding:3px 9px;border-radius:6px;white-space:nowrap}
+.tag.ok{background:rgba(61,220,132,.14);color:var(--ok)}
+.tag.warn{background:rgba(255,176,32,.14);color:var(--warn)}
+.tag.bad{background:rgba(255,93,93,.14);color:var(--bad)}
+.tag.cy{background:rgba(0,194,209,.14);color:var(--cyan)}
+.tag.bl{background:rgba(201,242,75,.14);color:var(--ball)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.toolbar .inp{width:auto;min-width:150px}
+canvas.chart{width:100%;height:220px;display:block}
+.empty{padding:34px;text-align:center;color:var(--dim);font-size:14px}
+.empty b{display:block;color:var(--mut);font-size:15px;margin-bottom:5px}
+
+/* modal + toast */
+#modal{position:fixed;inset:0;z-index:90;background:rgba(4,12,24,.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;padding:0}
+#modal.on{display:flex}
+#modal .sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;width:min(620px,100vw);max-height:88dvh;overflow-y:auto;padding:22px;animation:up .22s ease}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+#modal h2{font-size:18px;margin-bottom:16px}
+#toasts{position:fixed;top:14px;right:14px;z-index:120;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:11px 15px;font-size:13.5px;box-shadow:var(--shadow);animation:up .2s ease;max-width:320px}
+.toast.ok{border-left-color:var(--ok)}.toast.bad{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--warn)}
+
+/* scoreboard */
+.court-sb{background:linear-gradient(160deg,#0E2647,#0B1F3A);border:1px solid var(--line);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+.court-sb::after{content:"";position:absolute;inset:12px;border:1px solid rgba(0,194,209,.18);border-radius:10px;pointer-events:none}
+.sb-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;text-align:center}
+.sb-score{font-family:var(--font-d);font-size:clamp(56px,12vw,110px);font-weight:700;line-height:1;cursor:pointer;user-select:none;color:var(--ball);text-shadow:0 0 30px rgba(201,242,75,.25)}
+.sb-name{font-size:15px;font-weight:600;margin-bottom:6px;min-height:20px}
+.sb-serve{font-family:var(--font-m);font-size:11px;color:var(--cyan);letter-spacing:.15em;min-height:16px}
+.sb-mid{font-family:var(--font-m);color:var(--dim);font-size:12px;letter-spacing:.15em}
+.sb-games{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.sb-games span{width:12px;height:12px;border-radius:50%;border:1px solid var(--line)}
+.sb-games span.w{background:var(--ball);border-color:var(--ball)}
+.avatar{border-radius:50%;object-fit:cover;border:2px solid var(--line);vertical-align:middle;background:var(--navy-2)}
+.av-init{display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:700;color:var(--cyan);border:2px solid var(--line);border-radius:50%;background:var(--navy-2)}
+.sb-duo{display:flex;justify-content:center;gap:-8px;margin-bottom:8px}
+.sb-duo .avatar,.sb-duo .av-init{width:58px;height:58px;border-color:var(--cyan)}
+.sb-duo .avatar+.avatar,.sb-duo .av-init+.avatar,.sb-duo .avatar+.av-init,.sb-duo .av-init+.av-init{margin-left:-10px}
+
+/* bracket */
+.bracket{display:flex;gap:26px;overflow-x:auto;padding:8px 2px 16px}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:200px}
+.round h4{font-family:var(--font-m);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);text-align:center}
+.match{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+.match .p{display:flex;justify-content:space-between;gap:10px;padding:8px 11px;cursor:pointer}
+.match .p+.p{border-top:1px solid var(--line)}
+.match .p.w{background:rgba(201,242,75,.1)}
+.match .p.w b{color:var(--ball)}
+.match .sc{font-family:var(--font-m);color:var(--mut)}
+
+/* schedule grid */
+.slot-grid{display:grid;gap:5px;font-size:12px}
+.slot{padding:8px 6px;border-radius:8px;text-align:center;border:1px solid var(--line);background:var(--navy-2);cursor:pointer;font-family:var(--font-m);font-size:11px;transition:filter .12s}
+.slot:hover{filter:brightness(1.25)}
+.slot.booked{background:rgba(0,194,209,.16);border-color:var(--cyan-dim);color:var(--cyan)}
+.slot.blocked{background:rgba(255,93,93,.12);border-color:rgba(255,93,93,.4);color:var(--bad);cursor:not-allowed}
+.slot.mine{background:rgba(201,242,75,.16);border-color:var(--ball);color:var(--ball)}
+.slot-head{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;text-align:center;padding:4px 0}
+
+.switch{position:relative;width:42px;height:24px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch i{position:absolute;inset:0;background:var(--line);border-radius:99px;cursor:pointer;transition:.2s}
+.switch i::before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s}
+.switch input:checked+i{background:var(--cyan)}
+.switch input:checked+i::before{transform:translateX(18px)}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(30,58,97,.5)}
+.setrow .t{font-weight:500}.setrow .s{font-size:12px;color:var(--dim);margin-top:2px}
+
+@media(max-width:860px){
+  #app.on{grid-template-columns:1fr;grid-template-rows:52px 1fr 62px}
+  aside{display:none}
+  header{grid-column:1}
+  main{grid-column:1;padding:14px;padding-bottom:80px}
+  #tabbar{display:flex;grid-column:1;background:var(--navy-2);border-top:1px solid var(--line);justify-content:space-around;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
+  #tabbar button{flex:1;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-family:var(--font-m);cursor:pointer}
+  #tabbar button.on{color:var(--ball)}
+  #tabbar svg{width:21px;height:21px}
+  .g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}
+  .sb-score{font-size:clamp(48px,17vw,84px)}
+  #modal .sheet{border-radius:18px 18px 0 0}
+}
+@media(min-width:861px){#modal{align-items:center;padding:20px}#modal .sheet{border-radius:18px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="card">
+    <div class="logo-row">
+      <svg class="hex" viewBox="0 0 64 64"><polygon points="32,4 58,18 58,46 32,60 6,46 6,18" fill="none" stroke="#00C2D1" stroke-width="3"/><circle cx="32" cy="32" r="11" fill="#C9F24B"/><circle cx="28" cy="28" r="1.8" fill="#0B1F3A"/><circle cx="36" cy="28" r="1.8" fill="#0B1F3A"/><circle cx="32" cy="36" r="1.8" fill="#0B1F3A"/><circle cx="26" cy="35" r="1.8" fill="#0B1F3A"/><circle cx="38" cy="35" r="1.8" fill="#0B1F3A"/></svg>
+      <div class="brand">NEX<em>PICKLE</em></div>
+    </div>
+    <div class="tagline">Precision · Scale · Control</div>
+    <div class="field"><label>Operator</label>
+      <select id="loginUser" class="inp"></select></div>
+    <div class="field"><label>PIN</label>
+      <input id="loginPin" class="inp mono" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"></div>
+    <button class="btn btn-p" onclick="doLogin()">Enter Command Center</button>
+    <div class="err" id="loginErr"></div>
+    <div class="hint">Default PINs — Admin <span class="mono">1234</span> · Front Desk <span class="mono">2345</span> · Member kiosk <span class="mono">0000</span>. Change them in Settings → Security after first login.<br><br><span class="mono" style="color:var(--dim)">NEXARCH Systems Engineering · CYRABELL Platform · v1.0</span></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside>
+    <div class="logo-row">
+      <svg class="hex" style="width:36px;height:36px" viewBox="0 0 64 64"><polygon points="32,4 58,18 58,46 32,60 6,46 6,18" fill="none" stroke="#00C2D1" stroke-width="3"/><circle cx="32" cy="32" r="11" fill="#C9F24B"/></svg>
+      <div class="brand" style="font-size:19px">NEX<em>PICKLE</em></div>
+    </div>
+    <div class="tagline">Club Command Center</div>
+    <div id="sideNav"></div>
+    <div style="flex:1"></div>
+    <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
+  </aside>
+  <header>
+    <div id="viewTitle">Dashboard</div>
+    <div class="spacer"></div>
+    <span class="pill" id="syncPill"><span class="dot" id="syncDot"></span><span id="syncTxt">LOCAL</span></span>
+    <span class="pill mono" id="whoPill"></span>
+    <button class="btn btn-g btn-sm" onclick="syncNow()" title="Sync with Google Sheets">⇅ Sync</button>
+  </header>
+  <main id="main"></main>
+  <nav id="tabbar"></nav>
+</div>
+
+<div id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalBody"></div></div>
+<div id="toasts"></div>
+
+<script>
+/* =====================================================================
+   NEXPICKLE v1.0 — Pickleball Club Command Center
+   NEXARCH Systems Engineering · CYRABELL Platform
+   Stack: single-file PWA · Google Sheets + Apps Script backend ·
+   GitHub Pages hosting · localStorage offline-first · CYRA Intelligence ML
+   ===================================================================== */
+'use strict';
+const VERSION='1.0.0';
+const LS_KEY='nexpickle_db_v1';
+
+/* ---------------- CONFIG (Settings-editable) ---------------- */
+const DEFAULT_CFG={
+  clubName:'NEXPICKLE Club', currency:'₱', timezone:'Asia/Manila',
+  courts:['Court 1','Court 2','Court 3','Court 4'],
+  openHour:6, closeHour:22, slotMinutes:60,
+  rateOpenPlay:150, rateReserved:400, rateMemberDiscount:.2, rateCoach:600,
+  scoring:{pointsToWin:11, winBy:2, bestOf:3, rallyScoring:false},
+  gasUrl:'',            // Apps Script Web App URL
+  gasToken:'',          // shared API token (must match Code.gs)
+  autoSyncMin:5,
+  notif:{
+    email:{on:true,  via:'gas'},
+    sms:{on:false,   webhook:'', note:'Semaphore / Twilio webhook or Apps Script relay'},
+    messenger:{on:false, webhook:'', note:'FB Page token relay / ManyChat / Zapier hook'},
+    whatsapp:{on:false, webhook:'', note:'WhatsApp Cloud API / Zapier hook'},
+    viber:{on:false, webhook:'', note:'Viber bot API relay'}
+  },
+  connectors:[]         // outbound REST connectors to other systems
+};
+
+/* ---------------- DATA LAYER (offline-first) ---------------- */
+let DB=null, CFG=null, USER=null, syncTimer=null;
+function blankDB(){return{cfg:structuredClone(DEFAULT_CFG),users:[],players:[],bookings:[],events:[],matches:[],tournaments:[],payments:[],notifLog:[],outbox:[],meta:{lastSync:null,seq:1}}}
+function load(){try{DB=JSON.parse(localStorage.getItem(LS_KEY))||blankDB()}catch(e){DB=blankDB()}
+  CFG=Object.assign(structuredClone(DEFAULT_CFG),DB.cfg||{});
+  CFG.notif=Object.assign(structuredClone(DEFAULT_CFG.notif),CFG.notif||{});
+  DB.cfg=CFG;}
+function save(){DB.cfg=CFG;localStorage.setItem(LS_KEY,JSON.stringify(DB));}
+function uid(p){return p+'-'+Date.now().toString(36)+'-'+(DB.meta.seq++).toString(36)}
+async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+/* seed demo data on first run */
+async function seed(){
+  if(DB.users.length)return;
+  DB.users=[
+    {id:'u-admin',name:'Ray Engracia',role:'admin',pin:await sha('1234')},
+    {id:'u-desk',name:'Front Desk',role:'staff',pin:await sha('2345')},
+    {id:'u-kiosk',name:'Member Kiosk',role:'member',pin:await sha('0000')}];
+  const names=[['Miguel Santos','0917 555 0101'],['Ana Reyes','0917 555 0102'],['Carlo Dela Cruz','0917 555 0103'],['Bea Lim','0917 555 0104'],['Jomar Villanueva','0917 555 0105'],['Kris Tan','0917 555 0106'],['Paolo Garcia','0917 555 0107'],['Diane Uy','0917 555 0108']];
+  DB.players=names.map((n,i)=>({id:uid('P'),name:n[0],phone:n[1],email:n[0].split(' ')[0].toLowerCase()+'@mail.com',
+    tier:i<3?'Member':'Guest',rating:1000+Math.round(Math.random()*400),dupr:(2.5+Math.random()*2).toFixed(2),
+    wins:0,losses:0,noShows:i===4?2:0,joined:today(),channels:{email:true,sms:true,whatsapp:i%2===0,viber:i%3===0,messenger:false},notes:''}));
+  const d=today();
+  DB.bookings=[
+    bk(d,CFG.courts[0],8,DB.players[0].id,'reserved'),bk(d,CFG.courts[1],8,DB.players[1].id,'reserved'),
+    bk(d,CFG.courts[0],17,DB.players[2].id,'reserved'),bk(d,CFG.courts[2],18,DB.players[3].id,'open'),
+    bk(d,CFG.courts[3],19,DB.players[4].id,'reserved')];
+  // 21 days of synthetic history for CYRA forecasting
+  for(let i=1;i<=21;i++){const dd=addDays(d,-i);const n=3+Math.round(3*Math.abs(Math.sin(i/2)))+(new Date(dd).getDay()%6===0?3:0);
+    for(let j=0;j<n;j++){const b=bk(dd,CFG.courts[j%CFG.courts.length],7+(j*3)%14,DB.players[j%DB.players.length].id,'reserved');b.status=Math.random()<.08?'no-show':'done';DB.bookings.push(b);
+      DB.payments.push({id:uid('PAY'),date:dd,playerId:b.playerId,amount:CFG.rateReserved,method:['GCash','Cash','BPI'][j%3],ref:'',for:'Court booking',bookingId:b.id});}}
+  save();
+}
+function bk(date,court,hour,playerId,type){return{id:uid('B'),date,court,hour,durationH:1,playerId,type,status:'confirmed',paid:false,createdAt:new Date().toISOString(),notified:false}}
+
+/* ---------------- HELPERS ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const peso=n=>CFG.currency+Number(n||0).toLocaleString('en-PH',{maximumFractionDigits:0});
+function today(){return new Date().toLocaleDateString('en-CA')}
+function addDays(d,n){const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+n);return x.toLocaleDateString('en-CA')}
+function hh(h){const ap=h>=12?'PM':'AM';const v=h%12||12;return v+':00 '+ap}
+function player(id){return DB.players.find(p=>p.id===id)}
+function toast(msg,kind){const t=document.createElement('div');t.className='toast '+(kind||'');t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),4200)}
+function openModal(html){$('#modalBody').innerHTML=html;$('#modal').classList.add('on')}
+function closeModal(){closeCam();$('#modal').classList.remove('on')}
+function role(...r){return USER&&r.includes(USER.role)}
+
+/* ---------------- AUTH ---------------- */
+async function doLogin(){
+  const u=DB.users.find(x=>x.id===$('#loginUser').value);
+  const h=await sha($('#loginPin').value);
+  if(!u||u.pin!==h){$('#loginErr').textContent='Invalid PIN. Access denied.';return}
+  USER=u;sessionStorage.setItem('nexpickle_session',u.id);
+  $('#login').style.display='none';$('#app').classList.add('on');
+  $('#whoPill').textContent=u.name+' · '+u.role.toUpperCase();
+  buildNav();go('dash');
+  if(CFG.gasUrl)scheduleAutoSync();
+}
+function logout(){USER=null;sessionStorage.removeItem('nexpickle_session');location.reload()}
+function fillLogin(){$('#loginUser').innerHTML=DB.users.map(u=>`<option value="${u.id}">${esc(u.name)} — ${u.role}</option>`).join('')}
+
+/* ---------------- NAV / ROUTER ---------------- */
+const ICONS={
+ dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+ book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+ plan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+ score:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".8" fill="currentColor"/><circle cx="15" cy="10" r=".8" fill="currentColor"/><circle cx="12" cy="14" r=".8" fill="currentColor"/></svg>',
+ trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 01-10 0V4zM7 5H4v2a3 3 0 003 3M17 5h3v2a3 3 0 01-3 3"/></svg>',
+ users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 00-3-3.87M15 3.13a4 4 0 010 7.75"/></svg>',
+ pay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+ bi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M8 17V9M13 17V5M18 17v-7"/></svg>',
+ ai:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM19 15l1 2.5L22.5 18 20 19l-1 2.5L18 19l-2.5-1L18 15z"/></svg>',
+ bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>',
+ plug:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 01-6 6v0a6 6 0 01-6-6V8zM12 18v4"/></svg>',
+ gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'};
+const VIEWS=[
+ {id:'dash',t:'Dashboard',i:'dash',sec:'Operations',roles:['admin','staff','member']},
+ {id:'book',t:'Bookings',i:'book',roles:['admin','staff','member']},
+ {id:'plan',t:'Planner',i:'plan',roles:['admin','staff']},
+ {id:'score',t:'Live Scoring',i:'score',roles:['admin','staff','member']},
+ {id:'tour',t:'Tournaments',i:'trophy',roles:['admin','staff']},
+ {id:'players',t:'Players',i:'users',sec:'Management',roles:['admin','staff']},
+ {id:'pay',t:'Payments',i:'pay',roles:['admin','staff']},
+ {id:'bi',t:'Intelligence (BI)',i:'bi',roles:['admin']},
+ {id:'ai',t:'CYRA AI',i:'ai',roles:['admin','staff']},
+ {id:'notif',t:'Notifications',i:'bell',sec:'System',roles:['admin','staff']},
+ {id:'conn',t:'Connectors',i:'plug',roles:['admin']},
+ {id:'set',t:'Settings',i:'gear',roles:['admin']}];
+let CUR='dash';
+function buildNav(){
+  const vs=VIEWS.filter(v=>v.roles.includes(USER.role));
+  $('#sideNav').innerHTML=vs.map(v=>(v.sec?`<div class="nav-sec">${v.sec}</div>`:'')+
+    `<button class="nav-btn" data-v="${v.id}" onclick="go('${v.id}')">${ICONS[v.i]}${v.t}</button>`).join('');
+  const tabs=['dash','book','score','tour','players','set'].map(id=>vs.find(v=>v.id===id)).filter(Boolean).slice(0,5);
+  $('#tabbar').innerHTML=tabs.map(v=>`<button data-v="${v.id}" onclick="go('${v.id}')">${ICONS[v.i]}<span>${v.t.split(' ')[0]}</span></button>`).join('');
+}
+function go(id){CUR=id;const v=VIEWS.find(x=>x.id===id);$('#viewTitle').textContent=v.t;
+  document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===id));
+  ({dash:vDash,book:vBook,plan:vPlan,score:vScore,tour:vTour,players:vPlayers,pay:vPay,bi:vBI,ai:vAI,notif:vNotif,conn:vConn,set:vSet})[id]();
+  $('#main').scrollTop=0;}
+
+/* ---------------- CHART ENGINE (zero-dependency canvas) ---------------- */
+function drawBars(cv,labels,data,color){const c=cv.getContext('2d'),W=cv.width=cv.offsetWidth*2,H=cv.height=cv.offsetHeight*2;c.scale(1,1);
+  const max=Math.max(...data,1),pad=44,bw=(W-pad*1.4)/data.length;
+  c.font='20px JetBrains Mono';c.fillStyle='#5C7495';c.strokeStyle='#1E3A61';
+  for(let g=0;g<=4;g++){const y=(H-60)*(1-g/4)+18;c.beginPath();c.moveTo(pad,y);c.lineTo(W-8,y);c.stroke();c.fillText(Math.round(max*g/4),4,y+6)}
+  data.forEach((v,i)=>{const h=(H-60)*(v/max),x=pad+i*bw+bw*.14,y=H-42-h;
+    const gr=c.createLinearGradient(0,y,0,H-42);gr.addColorStop(0,color||'#00C2D1');gr.addColorStop(1,'rgba(0,194,209,.25)');
+    c.fillStyle=gr;c.beginPath();c.roundRect(x,y,bw*.72,h,6);c.fill();
+    if(data.length<=14){c.fillStyle='#5C7495';c.textAlign='center';c.fillText(labels[i],x+bw*.36,H-16);c.textAlign='left'}});}
+function drawLine(cv,labels,series){const c=cv.getContext('2d'),W=cv.width=cv.offsetWidth*2,H=cv.height=cv.offsetHeight*2;
+  const all=series.flatMap(s=>s.data),max=Math.max(...all,1),pad=44;
+  c.font='20px JetBrains Mono';c.strokeStyle='#1E3A61';c.fillStyle='#5C7495';
+  for(let g=0;g<=4;g++){const y=(H-60)*(1-g/4)+18;c.beginPath();c.moveTo(pad,y);c.lineTo(W-8,y);c.stroke();c.fillText(Math.round(max*g/4),4,y+6)}
+  series.forEach(s=>{c.strokeStyle=s.color;c.lineWidth=4;c.beginPath();
+    s.data.forEach((v,i)=>{const x=pad+(W-pad-16)*(i/(s.data.length-1||1)),y=H-42-(H-60)*(v/max);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+    if(s.dash)c.setLineDash([8,8]);else c.setLineDash([]);});
+  c.setLineDash([]);}
+function drawDonut(cv,items){const c=cv.getContext('2d'),W=cv.width=cv.offsetWidth*2,H=cv.height=cv.offsetHeight*2;
+  const cx=H/2,cy=H/2,r=H/2-14,tot=items.reduce((a,b)=>a+b.v,0)||1;let a0=-Math.PI/2;
+  items.forEach(it=>{const a1=a0+2*Math.PI*it.v/tot;c.beginPath();c.arc(cx,cy,r,a0,a1);c.arc(cx,cy,r*.58,a1,a0,true);c.closePath();c.fillStyle=it.c;c.fill();a0=a1});
+  c.font='22px Inter';items.forEach((it,i)=>{c.fillStyle=it.c;c.fillRect(H+20,26+i*40,18,18);c.fillStyle='#8FA3BF';c.fillText(`${it.l} — ${it.v}`,H+48,42+i*40)});}
+
+/* ---------------- DASHBOARD ---------------- */
+function vDash(){
+  const d=today(),tb=DB.bookings.filter(b=>b.date===d&&b.status!=='cancelled');
+  const slots=CFG.courts.length*(CFG.closeHour-CFG.openHour);
+  const util=Math.round(100*tb.length/slots);
+  const rev=DB.payments.filter(p=>p.date===d).reduce((a,p)=>a+ +p.amount,0);
+  const rev7=DB.payments.filter(p=>p.date>=addDays(d,-6)).reduce((a,p)=>a+ +p.amount,0);
+  const live=DB.matches.filter(m=>m.status==='live').length;
+  const fc=cyraForecast();
+  $('#main').innerHTML=`
+  <div class="grid g4">
+    <div class="card kpi"><div class="v">${tb.length}</div><div class="l">Bookings today</div><div class="d mono" style="color:var(--cyan)">CYRA forecast tomorrow: ${fc.tomorrow}</div></div>
+    <div class="card kpi"><div class="v">${util}%</div><div class="l">Court utilization</div><div class="d ${util>60?'up':'dn'}">${util>60?'▲ healthy load':'▼ capacity available'}</div></div>
+    <div class="card kpi"><div class="v">${peso(rev)}</div><div class="l">Revenue today</div><div class="d mono" style="color:var(--mut)">7-day: ${peso(rev7)}</div></div>
+    <div class="card kpi"><div class="v">${live}</div><div class="l">Live matches</div><div class="d mono" style="color:var(--ball)">${DB.tournaments.filter(t=>t.status==='active').length} active tournaments</div></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>Bookings — last 14 days <span class="tag cy">actual</span> <span class="tag bl">CYRA forecast</span></h3><canvas class="chart" id="chDash"></canvas></div>
+    <div class="card"><h3>Today's court schedule</h3>${todayStrip(tb)}</div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Next up</h3>${nextUpTable(tb)}</div>`;
+  const days=[...Array(14)].map((_,i)=>addDays(d,i-13));
+  const counts=days.map(x=>DB.bookings.filter(b=>b.date===x&&b.status!=='cancelled').length);
+  drawLine($('#chDash'),days,[{data:counts,color:'#00C2D1'},{data:days.map((x,i)=>i<10?null:fc.line[i-10]).map(v=>v??counts[9]),color:'#C9F24B',dash:true}].map(s=>({...s,data:s.data.map(v=>v==null?0:v)})));
+}
+function todayStrip(tb){
+  return `<div class="slot-grid" style="grid-template-columns:70px repeat(${CFG.courts.length},1fr)">
+   <div></div>${CFG.courts.map(c=>`<div class="slot-head">${esc(c)}</div>`).join('')}
+   ${[...Array(Math.min(8,CFG.closeHour-CFG.openHour))].map((_,i)=>{const h=Math.max(CFG.openHour,new Date().getHours())+i;if(h>=CFG.closeHour)return'';
+     return `<div class="slot-head" style="align-self:center">${hh(h)}</div>`+CFG.courts.map(c=>{
+       const b=tb.find(x=>x.court===c&&x.hour===h);
+       return b?`<div class="slot booked" title="${esc(player(b.playerId)?.name||'')}">${esc((player(b.playerId)?.name||'—').split(' ')[0])}</div>`:`<div class="slot" onclick="go('book')">open</div>`;}).join('')}).join('')}
+  </div>`;}
+function nextUpTable(tb){
+  const rows=tb.filter(b=>b.hour>=new Date().getHours()).sort((a,b)=>a.hour-b.hour).slice(0,6);
+  if(!rows.length)return '<div class="empty"><b>No more bookings today</b>Open play until closing.</div>';
+  return `<table><tr><th>Time</th><th>Court</th><th>Player</th><th>Type</th><th>Status</th><th></th></tr>${rows.map(b=>`
+   <tr><td class="mono">${hh(b.hour)}</td><td>${esc(b.court)}</td><td>${esc(player(b.playerId)?.name||'—')}</td>
+   <td><span class="tag cy">${b.type}</span></td><td><span class="tag ${b.status==='confirmed'?'ok':b.status==='no-show'?'bad':'warn'}">${b.status}</span></td>
+   <td><button class="btn btn-g btn-sm" onclick="checkIn('${b.id}')">Check-in</button></td></tr>`).join('')}</table>`;}
+function checkIn(id){const b=DB.bookings.find(x=>x.id===id);if(!b)return;b.status='done';queue('bookings',b);save();toast('Checked in — enjoy the game!','ok');go(CUR)}
+
+/* ---------------- BOOKINGS ---------------- */
+let bookDate=today();
+function vBook(){
+  const tb=DB.bookings.filter(b=>b.date===bookDate&&b.status!=='cancelled');
+  $('#main').innerHTML=`
+  <div class="toolbar">
+    <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,-1);vBook()">‹</button>
+    <input class="inp" type="date" value="${bookDate}" onchange="bookDate=this.value;vBook()">
+    <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,1);vBook()">›</button>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn btn-ball" onclick="bookingForm()">＋ New booking</button>
+  </div>
+  <div class="card">
+   <h3>Court grid — ${bookDate} <span class="tag cy">${tb.length} booked</span></h3>
+   <div class="slot-grid" style="grid-template-columns:64px repeat(${CFG.courts.length},1fr)">
+    <div></div>${CFG.courts.map(c=>`<div class="slot-head">${esc(c)}</div>`).join('')}
+    ${range(CFG.openHour,CFG.closeHour).map(h=>`<div class="slot-head" style="align-self:center">${hh(h)}</div>`+
+      CFG.courts.map(c=>{const b=tb.find(x=>x.court===c&&x.hour===h);
+        if(!b)return `<div class="slot" onclick="bookingForm('${c}',${h})">＋</div>`;
+        const nm=player(b.playerId)?.name||'—';
+        return `<div class="slot ${b.status==='done'?'mine':'booked'}" onclick="bookingCard('${b.id}')" title="${esc(nm)}">${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
+   </div>
+  </div>`;
+}
+function range(a,b){return[...Array(b-a)].map((_,i)=>a+i)}
+function bookingForm(court,hour){
+  openModal(`<h2>New booking</h2>
+   <div class="field"><label>Date</label><input id="bDate" class="inp" type="date" value="${bookDate}"></div>
+   <div class="grid g2">
+    <div class="field"><label>Court</label><select id="bCourt" class="inp">${CFG.courts.map(c=>`<option ${c===court?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    <div class="field"><label>Time</label><select id="bHour" class="inp">${range(CFG.openHour,CFG.closeHour).map(h=>`<option value="${h}" ${h===hour?'selected':''}>${hh(h)}</option>`).join('')}</select></div>
+   </div>
+   <div class="field"><label>Player</label><select id="bPlayer" class="inp">${DB.players.map(p=>`<option value="${p.id}">${esc(p.name)} (${p.tier})</option>`).join('')}</select></div>
+   <div class="grid g2">
+    <div class="field"><label>Type</label><select id="bType" class="inp"><option value="reserved">Reserved (${peso(CFG.rateReserved)})</option><option value="open">Open play (${peso(CFG.rateOpenPlay)})</option><option value="coaching">Coaching (${peso(CFG.rateCoach)})</option><option value="maintenance">Maintenance block</option></select></div>
+    <div class="field"><label>Duration (hrs)</label><input id="bDur" class="inp" type="number" min="1" max="4" value="1"></div>
+   </div>
+   <div style="display:flex;gap:10px"><button class="btn btn-p" onclick="saveBooking()">Save & notify</button><button class="btn btn-g" onclick="closeModal()">Cancel</button></div>`);
+}
+function saveBooking(){
+  const date=$('#bDate').value,court=$('#bCourt').value,hour=+$('#bHour').value,dur=Math.max(1,+$('#bDur').value||1);
+  for(let k=0;k<dur;k++)if(DB.bookings.some(b=>b.date===date&&b.court===court&&b.hour===hour+k&&b.status!=='cancelled')){toast(`Conflict: ${court} at ${hh(hour+k)} is already booked`,'bad');return}
+  if(hour+dur>CFG.closeHour){toast('Booking runs past closing time','bad');return}
+  const b=bk(date,court,hour,$('#bPlayer').value,$('#bType').value);b.durationH=dur;
+  DB.bookings.push(b);
+  for(let k=1;k<dur;k++){const bx=bk(date,court,hour+k,b.playerId,b.type);bx.parent=b.id;DB.bookings.push(bx);queue('bookings',bx)}
+  queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);
+  notify(p,'Booking confirmed',`Hi ${p?.name}! Your ${b.type} booking at ${CFG.clubName} is confirmed: ${court}, ${date} ${hh(hour)} (${dur}h). See you on court! — ${CFG.clubName}`);
+  toast('Booking saved','ok');vBook();
+}
+function bookingCard(id){
+  const b=DB.bookings.find(x=>x.id===id),p=player(b.playerId);
+  openModal(`<h2>Booking · ${esc(b.court)} · ${hh(b.hour)}</h2>
+   <table><tr><td>Date</td><td class="mono">${b.date}</td></tr><tr><td>Player</td><td>${esc(p?.name||'—')}</td></tr>
+   <tr><td>Type</td><td><span class="tag cy">${b.type}</span></td></tr><tr><td>Status</td><td><span class="tag ${b.status==='confirmed'?'ok':'warn'}">${b.status}</span></td>
+   </tr><tr><td>Paid</td><td>${b.paid?'<span class="tag ok">yes</span>':'<span class="tag warn">unpaid</span>'}</td></tr></table>
+   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    ${b.paid?'':`<button class="btn btn-ball btn-sm" onclick="payBooking('${b.id}')">Collect payment</button>`}
+    <button class="btn btn-g btn-sm" onclick="checkIn('${b.id}');closeModal()">Check-in</button>
+    <button class="btn btn-g btn-sm" onclick="markNoShow('${b.id}')">No-show</button>
+    <button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">Cancel booking</button>
+   </div>`);
+}
+function markNoShow(id){const b=DB.bookings.find(x=>x.id===id);b.status='no-show';const p=player(b.playerId);if(p)p.noShows=(p.noShows||0)+1;queue('bookings',b);save();closeModal();toast('Marked as no-show','warn');vBook()}
+function cancelBooking(id){const b=DB.bookings.find(x=>x.id===id);b.status='cancelled';queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);notify(p,'Booking cancelled',`Hi ${p?.name}, your booking on ${b.date} ${hh(b.hour)} (${b.court}) has been cancelled. Reply to rebook. — ${CFG.clubName}`);
+  toast('Booking cancelled');vBook()}
+function payBooking(id){
+  const b=DB.bookings.find(x=>x.id===id),p=player(b.playerId);
+  let amt=b.type==='coaching'?CFG.rateCoach:b.type==='open'?CFG.rateOpenPlay:CFG.rateReserved;amt*=b.durationH||1;
+  if(p?.tier==='Member')amt=Math.round(amt*(1-CFG.rateMemberDiscount));
+  openModal(`<h2>Collect payment</h2>
+   <div class="field"><label>Amount</label><input id="payAmt" class="inp mono" type="number" value="${amt}"></div>
+   <div class="field"><label>Method</label><select id="payM" class="inp"><option>GCash</option><option>Cash</option><option>BPI</option><option>Maya</option><option>Card</option></select></div>
+   <div class="field"><label>Reference #</label><input id="payRef" class="inp mono" placeholder="optional"></div>
+   <button class="btn btn-p" onclick="doPay('${id}')">Record payment</button>`);
+}
+function doPay(id){const b=DB.bookings.find(x=>x.id===id);b.paid=true;
+  const pay={id:uid('PAY'),date:today(),playerId:b.playerId,amount:+$('#payAmt').value,method:$('#payM').value,ref:$('#payRef').value,for:'Court booking',bookingId:b.id};
+  DB.payments.push(pay);queue('payments',pay);queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);notify(p,'Payment received',`${CFG.clubName}: received ${peso(pay.amount)} via ${pay.method} for your booking on ${b.date}. Salamat!`);
+  toast('Payment recorded — receipt sent','ok');go(CUR)}
+
+/* ---------------- PLANNER (events / leagues / coaching / maintenance) ---------------- */
+function vPlan(){
+  const evs=DB.events.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  $('#main').innerHTML=`
+  <div class="toolbar"><button class="btn btn-ball" onclick="eventForm()">＋ Plan event</button>
+   <span class="pill">Leagues · Clinics · Socials · Maintenance</span></div>
+  <div class="card"><h3>Program calendar</h3>
+  ${evs.length?`<table><tr><th>Date</th><th>Time</th><th>Event</th><th>Kind</th><th>Courts</th><th>Cap</th><th>Status</th><th></th></tr>
+   ${evs.map(e=>`<tr><td class="mono">${e.date}</td><td class="mono">${esc(e.time)}</td><td><b>${esc(e.title)}</b><div style="font-size:12px;color:var(--dim)">${esc(e.notes||'')}</div></td>
+   <td><span class="tag ${e.kind==='maintenance'?'bad':e.kind==='league'?'bl':'cy'}">${e.kind}</span></td>
+   <td class="mono">${esc((e.courts||[]).join(', '))}</td><td class="mono">${e.capacity||'—'}</td>
+   <td><span class="tag ${e.status==='done'?'ok':'warn'}">${e.status}</span></td>
+   <td style="white-space:nowrap"><button class="btn btn-g btn-sm" onclick="blastEvent('${e.id}')">Announce</button>
+   <button class="btn btn-danger btn-sm" onclick="delEvent('${e.id}')">✕</button></td></tr>`).join('')}</table>`
+  :'<div class="empty"><b>No programs planned</b>Schedule leagues, clinics, open-play socials, and court maintenance here.</div>'}
+  </div>`;
+}
+function eventForm(){
+  openModal(`<h2>Plan event</h2>
+   <div class="field"><label>Title</label><input id="eT" class="inp" placeholder="Saturday Ladder League — Week 3"></div>
+   <div class="grid g2">
+    <div class="field"><label>Date</label><input id="eD" class="inp" type="date" value="${today()}"></div>
+    <div class="field"><label>Time</label><input id="eTm" class="inp" placeholder="6:00 PM – 9:00 PM"></div>
+   </div>
+   <div class="grid g2">
+    <div class="field"><label>Kind</label><select id="eK" class="inp"><option>league</option><option>clinic</option><option>social</option><option>corporate</option><option>maintenance</option></select></div>
+    <div class="field"><label>Capacity</label><input id="eC" class="inp" type="number" placeholder="16"></div>
+   </div>
+   <div class="field"><label>Courts</label><select id="eCt" class="inp" multiple size="${CFG.courts.length}">${CFG.courts.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div>
+   <div class="field"><label>Notes</label><textarea id="eN" class="inp" rows="2"></textarea></div>
+   <button class="btn btn-p" onclick="saveEvent()">Save to planner</button>`);
+}
+function saveEvent(){
+  const e={id:uid('E'),title:$('#eT').value||'Untitled',date:$('#eD').value,time:$('#eTm').value,kind:$('#eK').value,
+   capacity:$('#eC').value,courts:[...$('#eCt').selectedOptions].map(o=>o.value),notes:$('#eN').value,status:'planned'};
+  DB.events.push(e);queue('events',e);save();closeModal();toast('Event planned','ok');vPlan();
+}
+function delEvent(id){DB.events=DB.events.filter(e=>e.id!==id);save();vPlan()}
+function blastEvent(id){const e=DB.events.find(x=>x.id===id);
+  const msg=`${CFG.clubName} · ${e.title} — ${e.date} ${e.time}. ${e.notes||''} Reserve your slot now!`;
+  let n=0;DB.players.forEach(p=>{notify(p,'Club announcement',msg,true);n++});
+  toast(`Announcement queued to ${n} players across enabled channels`,'ok');}
+
+/* ---------------- AVATARS & PHOTOS ---------------- */
+function avatar(p,sz){sz=sz||36;
+  if(p&&p.photo)return `<img src="${p.photo}" class="avatar" style="width:${sz}px;height:${sz}px" alt="">`;
+  const init=(p?.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+  return `<span class="av-init" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.38)}px">${init}</span>`}
+let stagedPhoto=null;
+function pickPhoto(){const i=document.createElement('input');i.type='file';i.accept='image/*';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      const c=document.createElement('canvas'),s=Math.min(img.width,img.height),d=180;c.width=d;c.height=d;
+      c.getContext('2d').drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,d,d);
+      stagedPhoto=c.toDataURL('image/jpeg',.82);
+      const pv=$('#photoPrev');if(pv)pv.innerHTML=avatar({photo:stagedPhoto},72);};
+      img.src=r.result};r.readAsDataURL(f)};i.click()}
+/* live camera capture — USB webcam (PC) or front/back camera (phone) */
+let camStream=null,camFace='user';
+async function openCamera(){
+  const host=$('#camHost');if(!host)return;host.style.display='';
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:camFace,width:{ideal:720},height:{ideal:720}},audio:false});
+    $('#camVideo').srcObject=camStream;
+  }catch(e){host.style.display='none';toast('Camera unavailable: '+(e.name==='NotAllowedError'?'permission denied':e.message),'bad')}
+}
+function snapCam(){
+  const v=$('#camVideo');if(!v||!v.videoWidth){toast('Camera still warming up…','warn');return}
+  const s=Math.min(v.videoWidth,v.videoHeight),d=180,c=document.createElement('canvas');c.width=d;c.height=d;
+  const x=c.getContext('2d');
+  if(camFace==='user'){x.translate(d,0);x.scale(-1,1)} // mirror selfies naturally
+  x.drawImage(v,(v.videoWidth-s)/2,(v.videoHeight-s)/2,s,s,0,0,d,d);
+  stagedPhoto=c.toDataURL('image/jpeg',.85);
+  const pv=$('#photoPrev');if(pv)pv.innerHTML=avatar({photo:stagedPhoto},72);
+  closeCam();toast('Photo captured','ok');
+}
+function switchCam(){camFace=camFace==='user'?'environment':'user';closeCam(false);openCamera()}
+function closeCam(hide){if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null}
+  if(hide!==false){const h=$('#camHost');if(h)h.style.display='none'}}
+
+/* ---------------- LIVE SCORING ---------------- */
+let liveMatch=null;
+function playerSel(id,defIdx){return `<select id="${id}" class="inp">${DB.players.map((p,i)=>`<option value="${p.id}" ${i===defIdx?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`}
+function vScore(){
+  liveMatch=DB.matches.find(m=>m.status==='live')||null;
+  if(!liveMatch){$('#main').innerHTML=`
+    <div class="card"><h3>Start a match</h3>
+     <div class="field"><label>Format</label><select id="mFmt" class="inp" onchange="$('#duoRow').style.display=this.value==='doubles'?'':'none'"><option value="singles">Singles (1 v 1)</option><option value="doubles">Doubles (2 v 2)</option></select></div>
+     <div class="grid g2">
+      <div class="field"><label>Side A — Player 1</label>${playerSel('mA',0)}</div>
+      <div class="field"><label>Side B — Player 1</label>${playerSel('mB',1)}</div>
+     </div>
+     <div class="grid g2" id="duoRow" style="display:none">
+      <div class="field"><label>Side A — Player 2</label>${playerSel('mA2',2)}</div>
+      <div class="field"><label>Side B — Player 2</label>${playerSel('mB2',3)}</div>
+     </div>
+     <div class="grid g3">
+      <div class="field"><label>Points to win</label><select id="mPts" class="inp"><option ${CFG.scoring.pointsToWin===11?'selected':''}>11</option><option ${CFG.scoring.pointsToWin===15?'selected':''}>15</option><option ${CFG.scoring.pointsToWin===21?'selected':''}>21</option></select></div>
+      <div class="field"><label>Best of</label><select id="mBo" class="inp"><option>1</option><option ${CFG.scoring.bestOf===3?'selected':''}>3</option><option>5</option></select></div>
+      <div class="field"><label>Scoring</label><select id="mRs" class="inp"><option value="side">Side-out (traditional)</option><option value="rally" ${CFG.scoring.rallyScoring?'selected':''}>Rally</option></select></div>
+     </div>
+     <button class="btn btn-ball" onclick="startMatch()">Start match</button></div>
+    <div class="card" style="margin-top:14px"><h3>Recent results</h3>${recentMatches()}</div>`;return}
+  renderLive();
+}
+function startMatch(){
+  const doubles=$('#mFmt').value==='doubles';
+  const a=$('#mA').value,b=$('#mB').value;
+  const a2=doubles?$('#mA2').value:null,b2=doubles?$('#mB2').value:null;
+  const ids=[a,b,a2,b2].filter(Boolean);
+  if(new Set(ids).size!==ids.length){toast('Each player can only be on one side','bad');return}
+  liveMatch={id:uid('M'),format:doubles?'doubles':'singles',a,b,a2,b2,scoreA:0,scoreB:0,gamesA:0,gamesB:0,server:'A',serverNum:2,
+   pts:+$('#mPts').value,bestOf:+$('#mBo').value,rally:$('#mRs').value==='rally',
+   status:'live',started:new Date().toISOString(),tournamentId:null,log:[]};
+  DB.matches.push(liveMatch);save();renderLive();
+}
+function sidePlayers(m,s){return [player(m[s.toLowerCase()]),m[s.toLowerCase()+'2']?player(m[s.toLowerCase()+'2']):null].filter(Boolean)}
+function sideName(m,s){const ps=sidePlayers(m,s);return ps.length>1?ps.map(p=>p.name.split(' ')[0]).join(' / '):(ps[0]?.name||'Side '+s)}
+function sideAvatars(m,s,sz){return `<div class="sb-duo">${sidePlayers(m,s).map(p=>avatar(p,sz||58)).join('')}</div>`}
+function renderLive(){
+  const m=liveMatch;
+  const call=m.rally?`${m.scoreA}–${m.scoreB}`:`${m.server==='A'?m.scoreA:m.scoreB}–${m.server==='A'?m.scoreB:m.scoreA}–${m.serverNum}`;
+  $('#main').innerHTML=`
+  <div class="court-sb">
+   <div style="text-align:center;font-family:var(--font-m);font-size:12px;letter-spacing:.2em;color:var(--cyan);margin-bottom:10px">LIVE · ${m.format==='doubles'?'DOUBLES':'SINGLES'} · GAME ${m.gamesA+m.gamesB+1} · CALL <b style="color:var(--ball)">${call}</b></div>
+   <div class="sb-grid">
+    <div>${sideAvatars(m,'A')}<div class="sb-name">${esc(sideName(m,'A'))}</div>
+     <div class="sb-serve">${m.server==='A'?'● SERVING '+(m.rally?'':'#'+m.serverNum):''}</div>
+     <div class="sb-score" onclick="point('A')">${m.scoreA}</div>
+     <div class="sb-games">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m.gamesA?'w':''}"></span>`).join('')}</div></div>
+    <div class="sb-mid">TAP<br>SCORE<br>TO ADD<br>POINT</div>
+    <div>${sideAvatars(m,'B')}<div class="sb-name">${esc(sideName(m,'B'))}</div>
+     <div class="sb-serve">${m.server==='B'?'● SERVING '+(m.rally?'':'#'+m.serverNum):''}</div>
+     <div class="sb-score" onclick="point('B')">${m.scoreB}</div>
+     <div class="sb-games">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m.gamesB?'w':''}"></span>`).join('')}</div></div>
+   </div>
+   <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
+    <button class="btn btn-ball btn-sm" onclick="openCast()">📺 Cast to monitor</button>
+    <button class="btn btn-g btn-sm" onclick="undoPoint()">↶ Undo</button>
+    <button class="btn btn-g btn-sm" onclick="sideOut(true)">Side-out / fault</button>
+    <button class="btn btn-danger btn-sm" onclick="abandonMatch()">Abandon</button>
+   </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Rules in play</h3>
+   <span class="tag cy">to ${m.pts}, win by ${CFG.scoring.winBy}</span> <span class="tag cy">best of ${m.bestOf}</span> <span class="tag ${m.rally?'bl':'cy'}">${m.rally?'rally scoring':'side-out scoring'}</span>
+   <div style="font-size:12px;color:var(--dim);margin-top:8px">Cast: opens a clean broadcast scoreboard in a new window — drag it to the TV/second monitor (or Chrome ⋮ → Cast → tab) and press F11 for full screen. It updates live with every point.</div></div>`;
+  renderCast();
+}
+
+/* ---------------- BROADCAST CAST MODE (monitor / TV) ---------------- */
+let castWin=null;
+function openCast(){
+  castWin=window.open('','nexpickle_cast','width=1280,height=720');
+  if(!castWin){toast('Pop-up blocked — allow pop-ups for this site to cast','bad');return}
+  castWin.document.write(`<!DOCTYPE html><html><head><title>NEXPICKLE · Live Court</title>
+   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+   <style>body{margin:0;background:#0B1F3A;color:#EAF2FB;font-family:Inter,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+   .top{font-family:'JetBrains Mono',monospace;letter-spacing:.35em;font-size:1.4vw;color:#00C2D1;text-align:center;padding:2.2vh 0 0}
+   .stage{flex:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;padding:0 4vw;position:relative}
+   .stage::before{content:"";position:absolute;inset:3vh 2.5vw;border:2px solid rgba(0,194,209,.22);border-radius:24px}
+   .stage::after{content:"";position:absolute;left:50%;top:3vh;bottom:3vh;width:2px;background:rgba(201,242,75,.25)}
+   .duo{display:flex;justify-content:center;margin-bottom:2vh}
+   .duo img,.duo .init{width:11vw;height:11vw;max-width:170px;max-height:170px;border-radius:50%;object-fit:cover;border:4px solid #00C2D1;background:#122A4A;margin:0 -1vw}
+   .duo .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:4vw;color:#00C2D1;font-weight:700}
+   .nm{font-size:2.6vw;font-weight:600;min-height:3.4vw}
+   .sv{font-family:'JetBrains Mono',monospace;font-size:1.3vw;color:#C9F24B;letter-spacing:.25em;min-height:2vw;margin-top:.6vh}
+   .sc{font-family:'Chakra Petch';font-size:17vw;font-weight:700;line-height:1;color:#C9F24B;text-shadow:0 0 60px rgba(201,242,75,.35)}
+   .gm{display:flex;gap:.8vw;justify-content:center;margin-top:1.5vh}
+   .gm span{width:1.4vw;height:1.4vw;border-radius:50%;border:2px solid #1E3A61}.gm span.w{background:#C9F24B;border-color:#C9F24B}
+   .mid{font-family:'JetBrains Mono',monospace;color:#5C7495;font-size:1.2vw;letter-spacing:.2em;z-index:1}
+   .bot{font-family:'JetBrains Mono',monospace;font-size:1vw;letter-spacing:.3em;color:#5C7495;text-align:center;padding:0 0 2vh}
+   .win{font-family:'Chakra Petch';font-size:6vw;color:#C9F24B;font-weight:700}
+   @keyframes pop{0%{transform:scale(.15);opacity:0}55%{transform:scale(1.12);opacity:1}75%{transform:scale(.96)}100%{transform:scale(1)}}
+   @keyframes glow{0%,100%{text-shadow:0 0 30px rgba(201,242,75,.45)}50%{text-shadow:0 0 90px rgba(201,242,75,1),0 0 30px rgba(0,194,209,.6)}}
+   @keyframes bnc{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.4vh)}}
+   @keyframes fall{0%{transform:translateY(-8vh) rotate(0deg)}100%{transform:translateY(110vh) rotate(760deg)}}
+   .winbox{display:flex;flex-direction:column;align-items:center;gap:1.6vh;animation:pop .8s cubic-bezier(.2,1.4,.4,1);z-index:2}
+   .wphotos{display:flex}
+   .wphotos img,.wphotos .init{width:14vw;height:14vw;max-width:230px;max-height:230px;border-radius:50%;object-fit:cover;border:.5vw solid #C9F24B;background:#122A4A;margin:0 -1.2vw;box-shadow:0 0 50px rgba(201,242,75,.45);animation:bnc 1.5s ease-in-out infinite}
+   .wphotos .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:5vw;color:#C9F24B;font-weight:700}
+   .wphotos :nth-child(2){animation-delay:.22s}
+   .wtitle{font-family:'Chakra Petch';font-size:6.5vw;font-weight:700;color:#C9F24B;letter-spacing:.06em;animation:glow 1.6s ease-in-out infinite}
+   .wname{font-size:3.4vw;font-weight:600}
+   .wsub{font-family:'JetBrains Mono',monospace;font-size:1.4vw;color:#00C2D1;letter-spacing:.2em}
+   .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+   .confetti i{position:absolute;top:-8vh;width:.75vw;height:1.7vw;border-radius:.2vw;animation:fall linear infinite}
+   @media (prefers-reduced-motion:reduce){*{animation:none!important}}</style></head>
+   <body><div class="top" id="cTop"></div><div class="stage" id="cStage"></div>
+   <div class="bot">NEXPICKLE · NEXARCH SYSTEMS ENGINEERING · PRECISION · SCALE · CONTROL</div></body></html>`);
+  castWin.document.close();
+  renderCast();toast('Broadcast window opened — move it to your monitor and press F11','ok');
+}
+function castAv(p){return p?(p.photo?`<img src="${p.photo}">`:`<span class="init">${(p.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase()}</span>`):''}
+function renderCast(msg){
+  if(!castWin||castWin.closed)return;
+  const top=castWin.document.getElementById('cTop'),st=castWin.document.getElementById('cStage');
+  if(!top||!st)return;
+  if(msg){top.textContent=esc(CFG.clubName).toUpperCase();st.innerHTML=`<div></div><div class="win">${msg}</div><div></div>`;return}
+  const m=liveMatch;if(!m)return;
+  const call=m.rally?`${m.scoreA}–${m.scoreB}`:`${m.server==='A'?m.scoreA:m.scoreB}–${m.server==='A'?m.scoreB:m.scoreA}–${m.serverNum}`;
+  top.textContent=`${CFG.clubName.toUpperCase()} · LIVE ${m.format==='doubles'?'DOUBLES':'SINGLES'} · GAME ${m.gamesA+m.gamesB+1} · ${call}`;
+  const side=s=>`<div><div class="duo">${sidePlayers(m,s).map(castAv).join('')}</div>
+    <div class="nm">${esc(sideName(m,s))}</div>
+    <div class="sv">${m.server===s?'● SERVING'+(m.rally?'':' #'+m.serverNum):''}</div>
+    <div class="sc">${m['score'+s]}</div>
+    <div class="gm">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m['games'+s]?'w':''}"></span>`).join('')}</div></div>`;
+  st.innerHTML=side('A')+`<div class="mid">VS</div>`+side('B');
+}
+function confettiHTML(n){const cols=['#C9F24B','#00C2D1','#FFB020','#FF5D5D','#EAF2FB','#3DDC84'];let h='<div class="confetti">';
+  for(let i=0;i<(n||80);i++)h+=`<i style="left:${(Math.random()*100).toFixed(1)}vw;background:${cols[i%cols.length]};animation-duration:${(2.6+Math.random()*3).toFixed(2)}s;animation-delay:${(Math.random()*2).toFixed(2)}s"></i>`;
+  return h+'</div>'}
+function castWinner(m,w){
+  if(!castWin||castWin.closed)return;
+  const top=castWin.document.getElementById('cTop'),st=castWin.document.getElementById('cStage');
+  if(!top||!st)return;
+  top.textContent=CFG.clubName.toUpperCase()+' · MATCH RESULT · '+(m.format==='doubles'?'DOUBLES':'SINGLES');
+  st.innerHTML=`<div></div><div class="winbox">
+    <div class="wphotos">${sidePlayers(m,w).map(castAv).join('')}</div>
+    <div class="wtitle">🏆 WINNER</div>
+    <div class="wname">${esc(sideName(m,w))}</div>
+    <div class="wsub">GAMES ${Math.max(m.gamesA,m.gamesB)}–${Math.min(m.gamesA,m.gamesB)}${(m.gameScores&&m.gameScores.length)?' · '+m.gameScores.join(' · '):''}</div>
+    <div class="wsub" style="color:#8FA3BF">CONGRATULATIONS! · ${esc(CFG.clubName).toUpperCase()}</div>
+  </div><div></div>`+confettiHTML();
+}
+function snapshot(){liveMatch.log.push(JSON.stringify({scoreA:liveMatch.scoreA,scoreB:liveMatch.scoreB,server:liveMatch.server,serverNum:liveMatch.serverNum,gamesA:liveMatch.gamesA,gamesB:liveMatch.gamesB}))}
+function undoPoint(){const m=liveMatch;if(!m.log.length)return;Object.assign(m,JSON.parse(m.log.pop()));save();renderLive()}
+function point(side){
+  const m=liveMatch;snapshot();
+  if(m.rally||m.server===side){m['score'+side]++;}
+  else{sideOut(false);}
+  checkGame();if(!liveMatch)return;save();renderLive();
+}
+function sideOut(manual){
+  const m=liveMatch;if(manual)snapshot();
+  if(m.rally){/* rally: fault just means opponent scored — handled via point taps */}
+  else if(m.serverNum===1){m.serverNum=2;}
+  else{m.server=m.server==='A'?'B':'A';m.serverNum= (m.scoreA===0&&m.scoreB===0&&m.gamesA===0&&m.gamesB===0)?2:1;
+    if(m.serverNum===1&&(m.scoreA>0||m.scoreB>0||m.gamesA>0||m.gamesB>0)){}else m.serverNum=1;}
+  if(manual){save();renderLive();}
+}
+function checkGame(){
+  const m=liveMatch,need=m.pts,wb=CFG.scoring.winBy;
+  const done=s=>m['score'+s]>=need&&m['score'+s]-m['score'+(s==='A'?'B':'A')]>=wb;
+  let w=done('A')?'A':done('B')?'B':null;
+  if(!w)return;
+  (m.gameScores=m.gameScores||[]).push(m.scoreA+'-'+m.scoreB);
+  m['games'+w]++;
+  const gw=Math.ceil(m.bestOf/2);
+  if(m.gamesA>=gw||m.gamesB>=gw){finishMatch(m.gamesA>=gw?'A':'B');return}
+  m.scoreA=0;m.scoreB=0;m.server=w==='A'?'B':'A';m.serverNum=2;m.log=[];
+  toast(`Game to ${sideName(m,w)}. Next game!`,'ok');
+}
+function finishMatch(w){
+  const m=liveMatch;m.status='done';m.winner=m[w.toLowerCase()];m.ended=new Date().toISOString();
+  m.winnerName=sideName(m,w);
+  // CYRA ELO update — team-average expected score, applied per player
+  const tA=sidePlayers(m,'A'),tB=sidePlayers(m,'B');
+  if(tA.length&&tB.length){
+    const K=32,avg=t=>t.reduce((a,p)=>a+p.rating,0)/t.length;
+    const Ea=1/(1+10**((avg(tB)-avg(tA))/400)),Sa=w==='A'?1:0;
+    tA.forEach(p=>{p.rating=Math.round(p.rating+K*(Sa-Ea));w==='A'?p.wins++:p.losses++;queue('players',p)});
+    tB.forEach(p=>{p.rating=Math.round(p.rating+K*((1-Sa)-(1-Ea)));w==='B'?p.wins++:p.losses++;queue('players',p)});}
+  queue('matches',m);
+  if(m.tournamentId)advanceBracket(m);
+  save();
+  renderCast&&castWinner(m,w);
+  liveMatch=null;
+  toast(`🏆 Match: ${m.winnerName} wins ${m.gamesA}–${m.gamesB}`,'ok');
+  sidePlayers(m,w).forEach(p=>notify(p,'Match result',`Congrats ${p.name}! Your side won ${Math.max(m.gamesA,m.gamesB)}–${Math.min(m.gamesA,m.gamesB)}. New club rating: ${p.rating}. — ${CFG.clubName}`));
+  vScore();
+}
+function abandonMatch(){liveMatch.status='abandoned';save();liveMatch=null;vScore()}
+function recentMatches(){
+  const ms=DB.matches.filter(m=>m.status==='done').slice(-8).reverse();
+  if(!ms.length)return '<div class="empty"><b>No matches yet</b>Start scoring above — ratings update automatically.</div>';
+  return `<table><tr><th>When</th><th>Format</th><th>Match</th><th>Result</th><th>Winner</th></tr>${ms.map(m=>`
+   <tr><td class="mono">${(m.ended||'').slice(0,10)}</td><td><span class="tag cy">${m.format||'singles'}</span></td>
+   <td>${esc(sideName(m,'A'))} vs ${esc(sideName(m,'B'))}</td>
+   <td class="mono">${m.gamesA}–${m.gamesB}</td><td><span class="tag bl">${esc(m.winnerName||player(m.winner)?.name||'—')}</span></td></tr>`).join('')}</table>`;
+}
+
+/* ================================================================
+   TOURNAMENT MANAGEMENT SYSTEM v2
+   Formats: single elimination · DOUBLE ELIMINATION · round robin
+   Disciplines: singles & doubles (team entries)
+   Registration + entry fees · court/time auto-scheduling ·
+   live-scoring integration · podium · bracket cast · CSV export
+   ================================================================ */
+function vTour(){
+  DB.tournaments.forEach(normTour);
+  const ts=DB.tournaments.slice().reverse();
+  $('#main').innerHTML=`
+  <div class="toolbar"><button class="btn btn-ball" onclick="tourForm()">＋ New tournament</button>
+   <span class="pill">single elim · double elim · round robin · singles & doubles</span></div>
+  ${ts.length?ts.map(t=>tourCard(t)).join(''):'<div class="card"><div class="empty"><b>No tournaments yet</b>Create an event — NEXPICKLE builds the bracket, schedule, registration, and notifications.</div></div>'}`;
+}
+function normTour(t){t.entrants=t.entrants||t.playerIds||[];t.discipline=t.discipline||'singles';t.teams=t.teams||[];t.regPaid=t.regPaid||{};t.entryFee=t.entryFee||0}
+function ents(t){return t.entrants}
+function entName(t,id){if(!id)return null;if(id==='BYE')return 'BYE';
+  if(t.discipline==='doubles'){const tm=t.teams.find(x=>x.id===id);return tm?tm.name:'?'}
+  return player(id)?.name||'?'}
+function entPlayers(t,id){if(!id||id==='BYE')return[];
+  if(t.discipline==='doubles'){const tm=t.teams.find(x=>x.id===id);return tm?[tm.p1,tm.p2]:[]}
+  return [id]}
+function entRating(t,id){const ps=entPlayers(t,id).map(pid=>player(pid)?.rating||1000);return ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:0}
+function tProgress(t){let tot=0,done=0;(t.rounds||[]).forEach(r=>r.matches.forEach(m=>{if(m.a==='BYE'&&m.b==='BYE')return;tot++;if(m.winner)done++}));return{tot,done,pct:tot?Math.round(100*done/tot):0}}
+
+function tourCard(t){
+  const pr=tProgress(t);
+  const feesDue=ents(t).filter(e=>!t.regPaid[e]).length;
+  return `<div class="card" style="margin-bottom:14px">
+   <h3>${esc(t.name)}
+    <span class="tag ${t.status==='active'?'bl':t.status==='done'?'ok':'cy'}">${t.status}</span>
+    <span class="tag cy">${t.format}</span><span class="tag cy">${t.discipline}</span>
+    ${t.rules?`<span class="tag cy">to ${t.rules.pts} · Bo${t.rules.bestOf} · ${t.rules.rally?'rally':'side-out'}</span>`:''}
+    ${t.thirdPlace?'<span class="tag cy">🥉 3rd-place</span>':''}
+    <span class="tag cy">${ents(t).length} ${t.discipline==='doubles'?'teams':'players'}</span>
+    ${t.entryFee?`<span class="tag ${feesDue?'warn':'ok'}">${feesDue?feesDue+' fees due':'fees complete'}</span>`:''}
+    ${t.status==='active'?`<span class="tag bl">${pr.pct}% · ${pr.done}/${pr.tot} matches</span>`:''}
+    <span style="flex:1"></span>
+    ${t.status==='draft'?`<button class="btn btn-ball btn-sm" onclick="startTour('${t.id}')">Generate bracket & start</button>`:''}
+    ${t.entryFee?`<button class="btn btn-g btn-sm" onclick="feesModal('${t.id}')">💳 Fees</button>`:''}
+    ${t.status!=='draft'?`<button class="btn btn-g btn-sm" onclick="schedModal('${t.id}')">🗓 Schedule</button>
+    <button class="btn btn-g btn-sm" onclick="castBracket('${t.id}')">📺 Cast bracket</button>
+    <button class="btn btn-g btn-sm" onclick="exportFixtures('${t.id}')">⬇ Fixtures</button>`:''}
+    <button class="btn btn-g btn-sm" onclick="announceTour('${t.id}')">Announce</button></h3>
+   ${t.status==='done'?podium(t):''}
+   ${t.status==='draft'?draftPanel(t):renderBracket(t)}
+  </div>`;
+}
+function podium(t){
+  const champ=entName(t,t.champion),ru=entName(t,t.runnerUp);
+  return `<div style="display:flex;gap:12px;align-items:center;background:rgba(201,242,75,.07);border:1px solid rgba(201,242,75,.3);border-radius:12px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap">
+   <div style="font-size:26px">🏆</div>
+   <div><div style="font-family:var(--font-d);font-weight:700;font-size:18px;color:var(--ball)">CHAMPION — ${esc(champ||'—')}</div>
+   ${ru?`<div style="font-size:13px;color:var(--mut)">🥈 Runner-up — ${esc(ru)}</div>`:''}
+   ${t.third?`<div style="font-size:13px;color:var(--mut)">🥉 Third — ${esc(entName(t,t.third))}</div>`:''}</div>
+   <div style="display:flex;margin-left:6px">${entPlayers(t,t.champion).map(pid=>avatar(player(pid),44)).join('')}</div></div>`;
+}
+function draftPanel(t){
+  const seeded=ents(t).slice().sort((a,b)=>entRating(t,b)-entRating(t,a));
+  return `<div style="color:var(--dim);font-size:13px;margin-bottom:10px">Scheduled ${t.date} · entry fee ${t.entryFee?peso(t.entryFee):'free'} · seeding by ${t.discipline==='doubles'?'team average rating':'club rating'}.</div>
+   <table><tr><th>Seed</th><th>Entrant</th><th>Rating</th>${t.entryFee?'<th>Fee</th>':''}</tr>
+   ${seeded.map((e,i)=>`<tr><td class="mono">${i+1}</td>
+     <td><div style="display:flex;align-items:center;gap:8px">${entPlayers(t,e).map(pid=>avatar(player(pid),28)).join('')}${esc(entName(t,e))}</div></td>
+     <td class="mono">${Math.round(entRating(t,e))}</td>
+     ${t.entryFee?`<td>${t.regPaid[e]?'<span class="tag ok">paid</span>':`<button class="btn btn-g btn-sm" onclick="collectFee('${t.id}','${e}')">Collect ${peso(t.entryFee)}</button>`}</td>`:''}</tr>`).join('')}</table>`;
+}
+
+/* ---------- create ---------- */
+let draftTeams=[];
+function tourForm(){
+  draftTeams=[];
+  openModal(`<h2>New tournament</h2>
+   <div class="field"><label>Name</label><input id="tN" class="inp" placeholder="Iligan Open 2026"></div>
+   <div class="grid g3">
+    <div class="field"><label>Date</label><input id="tD" class="inp" type="date" value="${addDays(today(),7)}"></div>
+    <div class="field"><label>Format</label><select id="tF" class="inp" onchange="tourFmtUI(this.value)"><option value="single-elim">Single elimination</option><option value="pool-knockout">Pool play → Knockout (RR groups of 4–5, top 2 cross over)</option><option value="double-elim">Double elimination</option><option value="round-robin">Round robin</option><option value="custom">Custom — build your own format</option></select></div>
+    <div class="field"><label>Entry fee (${CFG.currency})</label><input id="tFee" class="inp mono" type="number" value="0"></div>
+   </div>
+   <div class="field"><label>Match rules (applied to every fixture in this tournament)</label>
+    <div class="grid g3">
+     <select id="rPts" class="inp"><option value="11" ${CFG.scoring.pointsToWin===11?'selected':''}>To 11 points</option><option value="15" ${CFG.scoring.pointsToWin===15?'selected':''}>To 15 points</option><option value="21" ${CFG.scoring.pointsToWin===21?'selected':''}>To 21 points</option></select>
+     <select id="rBo" class="inp"><option value="1">Best of 1</option><option value="3" ${CFG.scoring.bestOf===3?'selected':''}>Best of 3</option><option value="5">Best of 5</option></select>
+     <select id="rSc" class="inp"><option value="side">Side-out scoring</option><option value="rally" ${CFG.scoring.rallyScoring?'selected':''}>Rally scoring</option></select>
+    </div><div style="font-size:11px;color:var(--dim);margin-top:4px">Win by ${CFG.scoring.winBy}. These rules auto-load whenever a fixture is scored live.</div></div>
+   <div id="customPanel" style="display:none;background:var(--navy-2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:14px">
+    <div style="font-family:var(--font-m);font-size:10px;letter-spacing:.18em;color:var(--cyan);margin-bottom:10px">CUSTOM FORMAT BUILDER</div>
+    <div class="setrow" style="border:none;padding:4px 0"><div><div class="t">Group stage (round-robin pools)</div><div class="s">Off = straight knockout from seeding</div></div>
+     <label class="switch"><input type="checkbox" id="cPools" checked onchange="$('#cPoolOpts').style.display=this.checked?'':'none'"><i></i></label></div>
+    <div id="cPoolOpts" class="grid g2" style="margin-top:6px">
+     <div class="field"><label>Number of pools</label><select id="cP" class="inp"><option value="auto">Auto (groups of 4–5)</option><option>2</option><option>3</option><option>4</option></select></div>
+     <div class="field"><label>Advance per pool</label><select id="cAdv" class="inp"><option value="1">Top 1</option><option value="2" selected>Top 2</option><option value="3">Top 3</option></select></div>
+    </div>
+    <div class="field"><label>Knockout stage</label><select id="cKo" class="inp"><option value="single">Single elimination</option><option value="double">Double elimination</option><option value="none">None — champion by pool standings</option></select></div>
+   </div>
+   <div id="thirdRow" class="setrow" style="padding:4px 0 12px;border:none"><div><div class="t">🥉 Third-place playoff</div><div class="s">Semifinal losers play for bronze</div></div>
+    <label class="switch"><input type="checkbox" id="tp3"><i></i></label></div>
+   <div class="field"><label>Discipline</label><select id="tDis" class="inp" onchange="toggleDiscipline(this.value)"><option value="singles">Singles</option><option value="doubles">Doubles (teams of 2)</option></select></div>
+   <div id="singlesPick" class="field"><label>Players (multi-select)</label>
+    <select id="tP" class="inp" multiple size="8">${DB.players.slice().sort((a,b)=>b.rating-a.rating).map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.rating}</option>`).join('')}</select></div>
+   <div id="teamBuild" style="display:none">
+    <div class="grid g2">
+     <div class="field"><label>Team player 1</label>${playerSel('tt1',0)}</div>
+     <div class="field"><label>Team player 2</label>${playerSel('tt2',1)}</div>
+    </div>
+    <button class="btn btn-g btn-sm" onclick="addTeam()">＋ Add team</button>
+    <div id="teamList" style="margin:10px 0"></div>
+   </div>
+   <button class="btn btn-p" onclick="saveTour()">Create tournament</button>`);
+}
+function toggleDiscipline(v){$('#singlesPick').style.display=v==='singles'?'':'none';$('#teamBuild').style.display=v==='doubles'?'':'none'}
+function addTeam(){
+  const p1=$('#tt1').value,p2=$('#tt2').value;
+  if(p1===p2){toast('Pick two different players','bad');return}
+  if(draftTeams.some(tm=>[tm.p1,tm.p2].includes(p1)||[tm.p1,tm.p2].includes(p2))){toast('A player is already on a team','bad');return}
+  draftTeams.push({id:uid('TT'),p1,p2,name:player(p1).name.split(' ').pop()+' / '+player(p2).name.split(' ').pop()});
+  $('#teamList').innerHTML=draftTeams.map((tm,i)=>`<span class="tag bl" style="margin:3px;display:inline-block">${esc(tm.name)} <a style="cursor:pointer" onclick="draftTeams.splice(${i},1);addTeamRefresh()">✕</a></span>`).join('');
+}
+function addTeamRefresh(){$('#teamList').innerHTML=draftTeams.map((tm,i)=>`<span class="tag bl" style="margin:3px;display:inline-block">${esc(tm.name)} <a style="cursor:pointer" onclick="draftTeams.splice(${i},1);addTeamRefresh()">✕</a></span>`).join('')}
+function tourFmtUI(v){$('#customPanel').style.display=v==='custom'?'':'none';
+  $('#thirdRow').style.display=(v==='single-elim'||v==='pool-knockout'||v==='custom')?'':'none'}
+function saveTour(){
+  const dis=$('#tDis').value;
+  let entrants,teams=[];
+  if(dis==='doubles'){teams=draftTeams.slice();entrants=teams.map(x=>x.id);
+    if(teams.length<3){toast('Add at least 3 teams','bad');return}}
+  else{entrants=[...$('#tP').selectedOptions].map(o=>o.value);
+    if(entrants.length<3){toast('Select at least 3 players','bad');return}}
+  const fmt=$('#tF').value;
+  const t={id:uid('T'),name:$('#tN').value||'Club Tournament',date:$('#tD').value,format:fmt,
+    discipline:dis,entrants,teams,entryFee:+$('#tFee').value||0,regPaid:{},rounds:[],status:'draft',
+    rules:{pts:+$('#rPts').value,bestOf:+$('#rBo').value,rally:$('#rSc').value==='rally'},
+    thirdPlace:$('#tp3').checked&&['single-elim','pool-knockout','custom'].includes(fmt)};
+  if(fmt==='custom'){
+    t.custom={pools:$('#cPools').checked,P:$('#cP').value,adv:+$('#cAdv').value,ko:$('#cKo').value};
+    if(t.custom.pools&&entrants.length<Math.max(4,t.custom.adv*2)){toast('Not enough entrants for that pool setup','bad');return}
+    if(!t.custom.pools&&t.custom.ko==='none'){toast('Choose a knockout type when pools are off','bad');return}}
+  if(fmt==='pool-knockout'&&entrants.length<6){toast('Pool play needs at least 6 entrants (2 pools of 3+)','bad');return}
+  DB.tournaments.push(t);queue('tournaments',t);save();closeModal();toast('Tournament created','ok');vTour();
+}
+
+/* ---------- fees ---------- */
+function feesModal(id){const t=DB.tournaments.find(x=>x.id===id);
+  openModal(`<h2>Entry fees · ${esc(t.name)}</h2>
+  <table><tr><th>Entrant</th><th>Status</th></tr>
+  ${ents(t).map(e=>`<tr><td>${esc(entName(t,e))}</td>
+   <td>${t.regPaid[e]?'<span class="tag ok">paid</span>':`<button class="btn btn-g btn-sm" onclick="collectFee('${t.id}','${e}')">Collect ${peso(t.entryFee)}</button>`}</td></tr>`).join('')}</table>
+  <div class="hint">Payments post to the main ledger as “Tournament entry”.</div>`);
+}
+function collectFee(tid,e){
+  const t=DB.tournaments.find(x=>x.id===tid);
+  const pid=entPlayers(t,e)[0];
+  const pay={id:uid('PAY'),date:today(),playerId:pid,amount:t.entryFee,method:'Cash',ref:t.id,for:'Tournament entry — '+t.name};
+  DB.payments.push(pay);queue('payments',pay);
+  t.regPaid[e]=true;queue('tournaments',t);save();toast('Entry fee recorded','ok');closeModal();vTour();
+}
+
+/* ---------- bracket generation ---------- */
+function fxNew(){return{id:uid('TM'),a:null,b:null,winner:null,score:'',court:'',time:''}}
+function startTour(id){
+  const t=DB.tournaments.find(x=>x.id===id);normTour(t);
+  const seeded=ents(t).slice().sort((a,b)=>entRating(t,b)-entRating(t,a));
+  if(t.format==='round-robin'){
+    t.rounds=[{name:'ROUND ROBIN',kind:'RR',matches:[]}];
+    for(let i=0;i<seeded.length;i++)for(let j=i+1;j<seeded.length;j++)t.rounds[0].matches.push({...fxNew(),a:seeded[i],b:seeded[j]});
+  }else if(t.format==='single-elim'){genSingleElim(t,seeded)}
+  else if(t.format==='pool-knockout'){genPoolKO(t,seeded)}
+  else if(t.format==='custom'){genCustom(t,seeded)}
+  else{genDoubleElim(t,seeded)}
+  t.status='active';queue('tournaments',t);save();toast('Bracket generated — good luck to all!','ok');vTour();
+}
+function seedSlots(seeded){let size=2;while(size<seeded.length)size*=2;
+  const slots=[...seeded];while(slots.length<size)slots.push('BYE');
+  return{size,pairs:[...Array(size/2)].map((_,i)=>[slots[i],slots[size-1-i]])};}
+function genSingleElim(t,seeded){
+  const{size,pairs}=seedSlots(seeded);const K=Math.log2(size);
+  t.rounds=[];
+  for(let r=1;r<=K;r++)t.rounds.push({name:roundName(size/2**(r-1)),kind:'W',matches:[...Array(size/2**r)].map(()=>fxNew())});
+  pairs.forEach((p,i)=>{t.rounds[0].matches[i].a=p[0];t.rounds[0].matches[i].b=p[1]});
+  for(let r=0;r<K-1;r++)t.rounds[r].matches.forEach((m,i)=>m.wTo={ri:r+1,mi:Math.floor(i/2),slot:i%2?'b':'a'});
+  addThirdPlace(t,K-2);
+  sweepByes(t);
+}
+function addThirdPlace(t,semisRi){ // semisRi = round index whose losers play for bronze
+  if(!t.thirdPlace||semisRi<0||!t.rounds[semisRi]||t.rounds[semisRi].matches.length!==2)return;
+  t.rounds.push({name:'THIRD PLACE',kind:'3P',matches:[fxNew()]});
+  const tp=t.rounds.length-1;
+  t.rounds[semisRi].matches.forEach((m,i)=>m.lTo={ri:tp,mi:0,slot:i?'b':'a'});
+}
+function genCustom(t,seeded){
+  const cu=t.custom||{};
+  if(cu.pools){genPoolKO(t,seeded,cu)}
+  else if(cu.ko==='double'){t.rounds=[];buildDoubleElim(t,seeded);t.koSeeded=true;sweepByes(t)}
+  else{genSingleElim(t,seeded);t.koSeeded=true}
+}
+function genDoubleElim(t,seeded){t.rounds=[];buildDoubleElim(t,seeded);sweepByes(t)}
+function buildDoubleElim(t,seeded){ // appends WB/LB/GF rounds at the current end, seeds R1 immediately
+  const base=t.rounds.length;
+  const{size,pairs}=seedSlots(seeded);const K=Math.log2(size);
+  const W=[...Array(K)].map((_,r)=>({name:'WB '+roundName(size/2**r),kind:'W',matches:[...Array(size/2**(r+1))].map(()=>fxNew())}));
+  const L=[];
+  for(let m=1;m<=K-1;m++){
+    L.push({name:'LB ROUND '+(2*m-1),kind:'L',matches:[...Array(size/2**(m+1))].map(()=>fxNew())});
+    L.push({name:'LB ROUND '+(2*m),kind:'L',matches:[...Array(size/2**(m+1))].map(()=>fxNew())});
+  }
+  const GF={name:'GRAND FINAL',kind:'GF',matches:[fxNew()]};
+  t.rounds.push(...W,...L,GF);
+  const wi=r=>base+r, li=l=>base+K+l-1, gfi=t.rounds.length-1;
+  pairs.forEach((p,i)=>{W[0].matches[i].a=p[0];W[0].matches[i].b=p[1]});
+  // winners routing
+  for(let r=0;r<K-1;r++)W[r].matches.forEach((m,i)=>m.wTo={ri:wi(r+1),mi:Math.floor(i/2),slot:i%2?'b':'a'});
+  W[K-1].matches[0].wTo={ri:gfi,mi:0,slot:'a'};
+  // losers drop-down routing
+  W[0].matches.forEach((m,i)=>m.lTo={ri:li(1),mi:Math.floor(i/2),slot:i%2?'b':'a'});
+  for(let m2=1;m2<=K-1;m2++)W[m2].matches.forEach((mm,i)=>mm.lTo={ri:li(2*m2),mi:i,slot:'b'});
+  // losers bracket internal routing
+  for(let m2=1;m2<=K-1;m2++){
+    t.rounds[li(2*m2-1)].matches.forEach((mm,i)=>mm.wTo={ri:li(2*m2),mi:i,slot:'a'});
+    if(m2<K-1)t.rounds[li(2*m2)].matches.forEach((mm,i)=>mm.wTo={ri:li(2*m2+1),mi:Math.floor(i/2),slot:i%2?'b':'a'});
+    else t.rounds[li(2*m2)].matches[0].wTo={ri:gfi,mi:0,slot:'b'};
+  }
+}
+/* ---------- POOL PLAY → CROSSOVER KNOCKOUT ---------- */
+const POOL_LETTERS='ABCDEFGH';
+function genPoolKO(t,seeded,opts){
+  opts=opts||{};
+  const N=seeded.length,adv=opts.adv||2;
+  let P=(opts.P&&opts.P!=='auto')?+opts.P:Math.ceil(N/5);if(P<2)P=2;
+  while(P>2&&Math.floor(N/P)<Math.max(2,adv))P--;           // every pool must hold at least `adv` entrants
+  // snake (serpentine) seeding into pools for balance
+  const pools=[...Array(P)].map(()=>[]);
+  seeded.forEach((e,i)=>{const lap=Math.floor(i/P);const k=lap%2?P-1-(i%P):i%P;pools[k].push(e)});
+  t.rounds=pools.map((pl,pi)=>{
+    const r={name:'POOL '+POOL_LETTERS[pi],kind:'P',entrants:pl,matches:[]};
+    for(let i=0;i<pl.length;i++)for(let j=i+1;j<pl.length;j++)r.matches.push({...fxNew(),a:pl[i],b:pl[j]});
+    return r;});
+  t.koSeeded=false;
+  const ko=opts.ko||'single';
+  if(ko!=='single')return;                                   // 'double' builds at qualification; 'none' crowns from standings
+  // single-elim knockout skeleton for adv qualifiers per pool
+  const Q=adv*P;let S=2;while(S<Q)S*=2;
+  const koCount=Math.log2(S);
+  const base=t.rounds.length;
+  for(let r=1;r<=koCount;r++)t.rounds.push({name:(r===1?'CROSSOVER · ':'')+roundName(S/2**(r-1)),kind:'W',matches:[...Array(S/2**r)].map(()=>fxNew())});
+  for(let r=0;r<koCount-1;r++)t.rounds[base+r].matches.forEach((m,i)=>m.wTo={ri:base+r+1,mi:Math.floor(i/2),slot:i%2?'b':'a'});
+  if(koCount>=2)addThirdPlace(t,base+koCount-2);
+}
+function poolStand(t,r){
+  const s={};(r.entrants||[]).forEach(e=>s[e]={w:0,l:0,pf:0,pa:0});
+  r.matches.forEach(m=>{if(!m.winner)return;
+    if(!s[m.a])s[m.a]={w:0,l:0,pf:0,pa:0};if(!s[m.b])s[m.b]={w:0,l:0,pf:0,pa:0};
+    s[m.winner].w++;s[m.winner===m.a?m.b:m.a].l++;
+    (String(m.score).match(/\d+-\d+/g)||[]).forEach(g=>{const[x,y]=g.split('-').map(Number);
+      s[m.a].pf+=x;s[m.a].pa+=y;s[m.b].pf+=y;s[m.b].pa+=x;});});
+  return Object.entries(s).sort((a,b)=>b[1].w-a[1].w||((b[1].pf-b[1].pa)-(a[1].pf-a[1].pa))||entRating(t,b[0])-entRating(t,a[0]));
+}
+function seedKnockout(t){
+  const pools=t.rounds.filter(r=>r.kind==='P');
+  if(t.koSeeded||!pools.length)return false;
+  if(!pools.every(r=>r.matches.every(m=>m.winner)))return false;
+  const cu=t.custom||{},adv=cu.adv||2,ko=cu.ko||'single';
+  const P=pools.length;
+  const byRec=(a,b)=>b.s.w-a.s.w||((b.s.pf-b.s.pa)-(a.s.pf-a.s.pa));
+  const ranks=[...Array(adv)].map(()=>[]);   // ranks[k] = k-th placers across pools
+  pools.forEach(r=>{const st=poolStand(t,r);
+    for(let k=0;k<adv;k++)ranks[k].push(st[k]?{e:st[k][0],s:st[k][1]}:{e:'BYE',s:{w:-1,pf:0,pa:0}})});
+  if(ko==='none'){ // champion decided by pool standings — best-record pool winner
+    const w=[...ranks[0]].sort(byRec);
+    t.champion=w[0].e;t.runnerUp=w[1]?w[1].e:(ranks[1]?[...ranks[1]].sort(byRec)[0]?.e:null);
+    t.koSeeded=true;t.status='done';notifyChampion(t);
+    toast('Pools complete — champion by standings: '+entName(t,t.champion),'ok');return true;}
+  if(ko==='double'){ // build the double-elim now that qualifiers are known
+    const seeds=[];for(let k=0;k<adv;k++)[...ranks[k]].sort(byRec).forEach(x=>seeds.push(x.e));
+    buildDoubleElim(t,seeds.filter(e=>e!=='BYE'));
+    t.koSeeded=true;
+    toast('Pools complete — double-elimination knockout seeded','ok');return true;}
+  const R1=t.rounds.find(r=>r.kind==='W');
+  if(adv===2&&(P&(P-1))===0){ // classic top-2, power-of-two pools → pure cross-over: A1 vs B2, B1 vs A2 …
+    for(let i=0;i<P;i++){R1.matches[i].a=ranks[0][i].e;R1.matches[i].b=ranks[1][(i+1)%P].e;}
+  }else{ // general case → seed by tier then record, byes to the best-ranked
+    const seeds=[];for(let k=0;k<adv;k++)[...ranks[k]].sort(byRec).forEach(x=>seeds.push(x.e));
+    const S=R1.matches.length*2,slots=[...seeds];while(slots.length<S)slots.push('BYE');
+    for(let i=0;i<S/2;i++){R1.matches[i].a=slots[i];R1.matches[i].b=slots[S-1-i];}
+  }
+  t.koSeeded=true;
+  const qNames=ranks.flat().filter(x=>x.e!=='BYE').map(x=>entName(t,x.e)).join(', ');
+  toast('Pools complete — knockout seeded (cross-over). Qualifiers: '+qNames,'ok');
+  return true;
+}
+function notifyChampion(t){
+  if(t.champNotified)return;t.champNotified=true;
+  const c=entName(t,t.champion);
+  DB.players.forEach(p=>notify(p,'Tournament result',`${t.name}: Champion — ${c}! Congratulations and thank you for playing. — ${CFG.clubName}`,true));
+}
+function routeResult(t,m){
+  if(!m.winner)return;
+  const loser=m.winner===m.a?m.b:m.a;
+  if(m.wTo)t.rounds[m.wTo.ri].matches[m.wTo.mi][m.wTo.slot]=m.winner;
+  if(m.lTo)t.rounds[m.lTo.ri].matches[m.lTo.mi][m.lTo.slot]=loser;
+}
+function sweepByes(t){
+  let changed=true;
+  while(changed){changed=false;
+    t.rounds.forEach(r=>r.matches.forEach(m=>{
+      if(m.winner||m.a===null||m.b===null)return;
+      if(m.a==='BYE'||m.b==='BYE'){
+        m.winner=m.a==='BYE'?(m.b==='BYE'?'BYE':m.b):m.a;m.score='bye';
+        routeResult(t,m);changed=true;}}));}
+  checkTourDone(t);
+}
+function checkTourDone(t){
+  if(t.format==='round-robin'){if(t.rounds[0].matches.every(m=>m.winner)&&t.status!=='done'){t.status='done';crownRR(t)}return}
+  if(t.rounds.some(r=>r.kind==='P')&&!t.koSeeded){if(seedKnockout(t))sweepByes(t);if(!t.koSeeded||t.status==='done')return}
+  if(t.status==='done')return;
+  const gfs=t.rounds.filter(r=>r.kind==='GF'),ws=t.rounds.filter(r=>r.kind==='W');
+  const fr=gfs.length?gfs[gfs.length-1]:(ws.length?ws[ws.length-1]:null);
+  if(!fr)return;
+  const fin=fr.matches[0];
+  if(!fin.winner||fin.winner==='BYE')return;
+  t.champion=fin.winner;t.runnerUp=fin.winner===fin.a?fin.b:fin.a;
+  const tp=t.rounds.find(r=>r.kind==='3P');
+  if(tp&&tp.matches[0].winner&&tp.matches[0].winner!=='BYE')t.third=tp.matches[0].winner;
+  if(!tp||tp.matches[0].winner){t.status='done';notifyChampion(t)}
+}
+function rrStand(t){const r=t.rounds[0];r.entrants=r.entrants||ents(t);return poolStand(t,r)}
+function crownRR(t){const st=rrStand(t);t.champion=st[0]?.[0];t.runnerUp=st[1]?.[0];notifyChampion(t);}
+
+/* ---------- rendering ---------- */
+function renderBracket(t){
+  if(t.format==='round-robin'){
+    const st=rrStand(t);
+    return `<div class="grid g2"><div><h3 style="margin-top:6px">Fixtures</h3><div style="max-height:340px;overflow-y:auto"><table>${t.rounds[0].matches.map(m=>fxRow(t,m)).join('')}</table></div></div>
+     <div><h3 style="margin-top:6px">Standings <span class="tag cy">W · L · point diff</span></h3><table><tr><th>#</th><th>Entrant</th><th>W</th><th>L</th><th>±</th></tr>
+      ${st.map(([e,s],i)=>`<tr><td class="mono">${i+1}</td><td>${esc(entName(t,e))}</td><td class="mono">${s.w}</td><td class="mono">${s.l}</td><td class="mono">${s.pf-s.pa>0?'+':''}${s.pf-s.pa}</td></tr>`).join('')}</table></div></div>`;
+  }
+  const poolRounds=t.rounds.filter(r=>r.kind==='P');
+  const ADV=t.custom?.adv||2;
+  const poolHtml=poolRounds.length?`<div class="nav-sec" style="padding-left:0">POOL PLAY — TOP ${ADV} QUALIFY</div>
+   <div class="grid g2">${poolRounds.map(r=>{const st=poolStand(t,r);return `
+    <div style="background:var(--navy-2);border:1px solid var(--line);border-radius:12px;padding:12px">
+     <h3 style="margin-bottom:8px">${r.name} <span class="tag cy">${r.entrants.length} entrants</span></h3>
+     <table style="margin-bottom:10px"><tr><th>#</th><th>Entrant</th><th>W</th><th>L</th><th>±</th></tr>
+      ${st.map(([e,s],i)=>`<tr style="${i<ADV?'box-shadow:inset 3px 0 0 var(--ball)':''}"><td class="mono">${i+1}</td>
+       <td>${bkName(t,e)}</td><td class="mono">${s.w}</td><td class="mono">${s.l}</td><td class="mono">${s.pf-s.pa>0?'+':''}${s.pf-s.pa}</td></tr>`).join('')}</table>
+     <table>${r.matches.map(m=>fxRow(t,m)).join('')}</table></div>`}).join('')}</div>
+   ${t.custom?.ko==='none'?'':`<div class="nav-sec" style="padding-left:0">KNOCKOUT${t.custom?.ko==='double'?' — DOUBLE ELIMINATION':' — CROSS-OVER (A1 vs B2 · B1 vs A2 …)'}${t.koSeeded?'':' <span class="tag warn" style="margin-left:6px">seeds after pools finish</span>'}</div>`}`:'';
+  const groups=[['W',t.format==='double-elim'||t.custom?.ko==='double'?'WINNERS BRACKET':''],['L','LOSERS BRACKET'],['GF','GRAND FINAL'],['3P','THIRD PLACE']];
+  return poolHtml+groups.map(([k,label])=>{
+    const rs=t.rounds.filter(r=>r.kind===k);if(!rs.length)return'';
+    return `${label?`<div class="nav-sec" style="padding-left:0">${label}</div>`:''}
+    <div class="bracket">${rs.map(r=>`<div class="round"><h4>${r.name}</h4>
+     ${r.matches.map(m=>`<div class="match">
+       ${m.court||m.time?`<div style="padding:4px 11px;font-family:var(--font-m);font-size:10px;color:var(--cyan);border-bottom:1px solid var(--line)">${esc(m.court||'')}${m.court&&m.time?' · ':''}${esc(m.time||'')}</div>`:''}
+       <div class="p ${m.winner&&m.winner===m.a?'w':''}" onclick="reportTM('${t.id}','${m.id}')"><b>${bkName(t,m.a)}</b><span class="sc">${m.winner===m.a?esc(m.score):''}</span></div>
+       <div class="p ${m.winner&&m.winner===m.b?'w':''}" onclick="reportTM('${t.id}','${m.id}')"><b>${bkName(t,m.b)}</b><span class="sc">${m.winner===m.b?esc(m.score):''}</span></div>
+       ${!m.winner&&m.a&&m.b&&m.a!=='BYE'&&m.b!=='BYE'?`<div style="padding:6px 11px;border-top:1px solid var(--line);display:flex;gap:8px">
+         <button class="btn btn-ball btn-sm" style="padding:3px 9px;font-size:11px" onclick="startFixture('${t.id}','${m.id}')">▶ Score live</button>
+         <button class="btn btn-g btn-sm" style="padding:3px 9px;font-size:11px" onclick="reportTM('${t.id}','${m.id}')">Report</button></div>`:''}
+      </div>`).join('')}</div>`).join('')}</div>`;}).join('');
+}
+function bkName(t,id){if(!id)return '<span style="color:var(--dim)">TBD</span>';if(id==='BYE')return '<span style="color:var(--dim)">BYE</span>';
+  const ps=entPlayers(t,id);return `<span style="display:inline-flex;align-items:center;gap:6px">${ps.map(pid=>avatar(player(pid),20)).join('')}${esc(entName(t,id))}</span>`}
+function fxRow(t,m){
+  return `<tr><td>${bkName(t,m.a)} vs ${bkName(t,m.b)}</td><td class="mono" style="font-size:11px;color:var(--cyan)">${esc(m.court||'')} ${esc(m.time||'')}</td><td class="mono">${esc(m.score||'—')}</td>
+   <td style="white-space:nowrap">${m.winner?`<span class="tag bl">${esc(entName(t,m.winner))}</span>`
+    :`<button class="btn btn-ball btn-sm" style="padding:3px 9px;font-size:11px" onclick="startFixture('${t.id}','${m.id}')">▶</button>
+      <button class="btn btn-g btn-sm" style="padding:3px 9px;font-size:11px" onclick="reportTM('${t.id}','${m.id}')">Report</button>`}</td></tr>`;
+}
+
+/* ---------- reporting & live-scoring integration ---------- */
+function findFx(t,mid){let out=null;t.rounds.forEach(r=>r.matches.forEach(m=>{if(m.id===mid)out=m}));return out}
+function reportTM(tid,mid){
+  const t=DB.tournaments.find(x=>x.id===tid),m=findFx(t,mid);
+  if(!m||!m.a||!m.b||m.a==='BYE'||m.b==='BYE'){toast('Waiting for entrants to advance','warn');return}
+  if(m.winner){toast('Result already recorded');return}
+  openModal(`<h2>Report result</h2>
+   <div class="field"><label>Winner</label><select id="tmW" class="inp"><option value="${m.a}">${esc(entName(t,m.a))}</option><option value="${m.b}">${esc(entName(t,m.b))}</option></select></div>
+   <div class="field"><label>Score (e.g. 11-7, 9-11, 11-8)</label><input id="tmS" class="inp mono" placeholder="11-7, 11-9"></div>
+   <button class="btn btn-p" onclick="saveTM('${tid}','${mid}')">Save result</button>`);
+}
+function saveTM(tid,mid){
+  const t=DB.tournaments.find(x=>x.id===tid),m=findFx(t,mid);
+  m.winner=$('#tmW').value;m.score=$('#tmS').value||'W';
+  routeResult(t,m);sweepByes(t);
+  queue('tournaments',t);save();closeModal();
+  renderBracketCast(t);vTour();
+}
+function startFixture(tid,mid){
+  const t=DB.tournaments.find(x=>x.id===tid),m=findFx(t,mid);
+  if(DB.matches.some(x=>x.status==='live')){toast('Finish the current live match first','warn');return}
+  const A=entPlayers(t,m.a),B=entPlayers(t,m.b);
+  const R=t.rules||{};
+  liveMatch={id:uid('M'),format:t.discipline,a:A[0],a2:A[1]||null,b:B[0],b2:B[1]||null,
+    scoreA:0,scoreB:0,gamesA:0,gamesB:0,server:'A',serverNum:2,
+    pts:R.pts||CFG.scoring.pointsToWin,bestOf:R.bestOf||CFG.scoring.bestOf,rally:('rally'in R)?!!R.rally:CFG.scoring.rallyScoring,
+    status:'live',started:new Date().toISOString(),tournamentId:tid,fixtureId:mid,entA:m.a,entB:m.b,
+    gameScores:[],log:[]};
+  DB.matches.push(liveMatch);save();go('score');
+  toast('Fixture live: '+entName(t,m.a)+' vs '+entName(t,m.b),'ok');
+}
+function advanceBracket(m){
+  const t=DB.tournaments.find(x=>x.id===m.tournamentId);if(!t)return;
+  const fx=findFx(t,m.fixtureId);if(!fx||fx.winner)return;
+  fx.winner=m.gamesA>m.gamesB?m.entA:m.entB;
+  fx.score=(m.gameScores&&m.gameScores.length)?m.gameScores.join(', '):`${Math.max(m.gamesA,m.gamesB)}–${Math.min(m.gamesA,m.gamesB)}`;
+  routeResult(t,fx);sweepByes(t);queue('tournaments',t);
+  renderBracketCast(t);
+}
+
+/* ---------- scheduling ---------- */
+function schedModal(id){const t=DB.tournaments.find(x=>x.id===id);
+  openModal(`<h2>Auto-schedule · ${esc(t.name)}</h2>
+   <div class="grid g3">
+    <div class="field"><label>Date</label><input id="sD" class="inp" type="date" value="${t.date||today()}"></div>
+    <div class="field"><label>Start hour</label><input id="sH" class="inp mono" type="number" min="0" max="23" value="${CFG.openHour+2}"></div>
+    <div class="field"><label>Mins / match</label><input id="sM" class="inp mono" type="number" value="30"></div>
+   </div>
+   <div class="hint">Assigns courts (${esc(CFG.courts.join(', '))}) round-by-round in bracket order. Unplayed matches only. Each entrant gets rest between rounds by design of the ordering.</div>
+   <button class="btn btn-p" onclick="autoSched('${id}')">Assign courts & times</button>`);
+}
+function autoSched(id){
+  const t=DB.tournaments.find(x=>x.id===id);
+  const C=CFG.courts.length;let idx=0;
+  let mins=(+$('#sH').value)*60;const per=+$('#sM').value||30;const date=$('#sD').value;
+  t.rounds.forEach(r=>{
+    r.matches.forEach(m=>{
+      if(m.winner)return;
+      m.court=CFG.courts[idx%C];
+      const tm=mins+Math.floor(idx/C)*per;
+      m.time=date.slice(5)+' '+String(Math.floor(tm/60)).padStart(2,'0')+':'+String(tm%60).padStart(2,'0');
+      idx++;});
+    if(idx%C!==0)idx+=C-(idx%C); // next round starts on a fresh time block
+  });
+  queue('tournaments',t);save();closeModal();toast('Schedule assigned to all pending matches','ok');vTour();
+}
+
+/* ---------- cast bracket / export / announce ---------- */
+let bCastWin=null,bCastTid=null;
+function castBracket(id){
+  const t=DB.tournaments.find(x=>x.id===id);
+  bCastWin=window.open('','nexpickle_bracket','width=1600,height=900');
+  if(!bCastWin){toast('Pop-up blocked — allow pop-ups to cast','bad');return}
+  bCastTid=id;
+  bCastWin.document.write(`<!DOCTYPE html><html><head><title>${esc(t.name)} · Bracket</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>body{margin:0;background:#0B1F3A;color:#EAF2FB;font-family:Inter,sans-serif;padding:2vh 2vw;overflow-x:auto}
+  h1{font-family:'Chakra Petch';color:#EAF2FB;margin:0 0 4px;font-size:2.6vw}h1 em{font-style:normal;color:#C9F24B}
+  .sub{font-family:'JetBrains Mono',monospace;color:#00C2D1;letter-spacing:.25em;font-size:1vw;margin-bottom:2.5vh}
+  .sec{font-family:'JetBrains Mono',monospace;color:#5C7495;letter-spacing:.25em;font-size:.95vw;margin:2.2vh 0 1vh}
+  .brk{display:flex;gap:2.2vw}.rnd{display:flex;flex-direction:column;justify-content:space-around;gap:1.6vh;min-width:15vw}
+  .rnd h4{font-family:'JetBrains Mono',monospace;font-size:.85vw;letter-spacing:.2em;color:#5C7495;text-align:center;margin:0}
+  .m{background:#122A4A;border:1px solid #1E3A61;border-radius:10px;overflow:hidden;font-size:1.05vw}
+  .p{display:flex;justify-content:space-between;gap:1vw;padding:.9vh 1vw;align-items:center}
+  .p+.p{border-top:1px solid #1E3A61}.p.w{background:rgba(201,242,75,.12)}.p.w b{color:#C9F24B}
+  .p img{width:1.8vw;height:1.8vw;border-radius:50%;object-fit:cover;border:2px solid #00C2D1;vertical-align:middle;margin-right:.5vw}
+  .sc{font-family:'JetBrains Mono',monospace;color:#8FA3BF;font-size:.9vw}.meta{padding:.4vh 1vw;font-family:'JetBrains Mono',monospace;font-size:.75vw;color:#00C2D1;border-bottom:1px solid #1E3A61}
+  .champ{font-family:'Chakra Petch';color:#C9F24B;font-size:1.6vw;margin:1.5vh 0}
+  @keyframes pop{0%{transform:scale(.15);opacity:0}55%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
+  @keyframes glow{0%,100%{text-shadow:0 0 24px rgba(201,242,75,.4)}50%{text-shadow:0 0 70px rgba(201,242,75,1)}}
+  @keyframes bnc{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.6vh)}}
+  @keyframes fall{0%{transform:translateY(-8vh) rotate(0)}100%{transform:translateY(110vh) rotate(760deg)}}
+  .champbox{display:flex;align-items:center;gap:1.6vw;background:rgba(201,242,75,.08);border:1px solid rgba(201,242,75,.4);border-radius:16px;padding:1.6vh 2vw;margin:1.5vh 0;animation:pop .8s cubic-bezier(.2,1.4,.4,1);position:relative;z-index:2}
+  .champbox img,.champbox .init{width:5.5vw;height:5.5vw;border-radius:50%;object-fit:cover;border:.3vw solid #C9F24B;background:#122A4A;margin-right:-.8vw;animation:bnc 1.5s ease-in-out infinite;box-shadow:0 0 30px rgba(201,242,75,.4)}
+  .champbox .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:2vw;color:#C9F24B;font-weight:700}
+  .champbox .t1{font-family:'Chakra Petch';font-size:2.4vw;font-weight:700;color:#C9F24B;animation:glow 1.6s infinite}
+  .champbox .t2{font-size:1.2vw;color:#8FA3BF}
+  .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+  .confetti i{position:absolute;top:-8vh;width:.55vw;height:1.3vw;border-radius:.15vw;animation:fall linear infinite}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  .foot{font-family:'JetBrains Mono',monospace;color:#5C7495;letter-spacing:.3em;font-size:.8vw;text-align:center;margin-top:3vh}</style></head>
+  <body><div id="root"></div><div class="foot">NEXPICKLE · NEXARCH SYSTEMS ENGINEERING · PRECISION · SCALE · CONTROL</div></body></html>`);
+  bCastWin.document.close();
+  renderBracketCast(t);
+  toast('Bracket board opened — move to the venue monitor and press F11','ok');
+}
+function renderBracketCast(t){
+  if(!bCastWin||bCastWin.closed||bCastTid!==t.id)return;
+  const root=bCastWin.document.getElementById('root');if(!root)return;
+  const av=id=>entPlayers(t,id).map(pid=>{const p=player(pid);return p&&p.photo?`<img src="${p.photo}">`:''}).join('');
+  const nmC=id=>!id?'<span style="color:#5C7495">TBD</span>':id==='BYE'?'<span style="color:#5C7495">BYE</span>':esc(entName(t,id));
+  let html=`<h1>${esc(t.name)} <em>· LIVE BRACKET</em></h1><div class="sub">${esc(CFG.clubName).toUpperCase()} · ${t.format.toUpperCase()} · ${t.discipline.toUpperCase()} · ${t.date||''}</div>`;
+  if(t.status==='done')html+=`<div class="champbox"><div style="font-size:3vw">🏆</div>
+    <div style="display:flex">${entPlayers(t,t.champion).map(pid=>{const p=player(pid);return p&&p.photo?`<img src="${p.photo}">`:`<span class="init">${(p?.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase()}</span>`}).join('')}</div>
+    <div><div class="t1">CHAMPION — ${esc(entName(t,t.champion))}</div>
+    <div class="t2">🥈 Runner-up — ${esc(entName(t,t.runnerUp)||'—')} · ${esc(t.name)} · ${esc(CFG.clubName)}</div></div></div>`+confettiHTML(60);
+  if(t.format==='round-robin'){
+    const st=rrStand(t);
+    html+=`<div class="sec">STANDINGS</div><div class="brk"><div class="rnd" style="min-width:30vw">${st.map(([e,s],i)=>`<div class="m"><div class="p ${i===0&&t.status==='done'?'w':''}"><b>${i+1}. ${av(e)}${nmC(e)}</b><span class="sc">${s.w}W–${s.l}L · ${s.pf-s.pa>0?'+':''}${s.pf-s.pa}</span></div></div>`).join('')}</div></div>`;
+  }else{
+    const poolRounds=t.rounds.filter(r=>r.kind==='P');
+    const ADV=t.custom?.adv||2;
+    if(poolRounds.length){
+      html+=`<div class="sec">POOL PLAY — TOP ${ADV} QUALIFY</div><div class="brk">${poolRounds.map(r=>{const st=poolStand(t,r);return `
+       <div class="rnd" style="min-width:22vw"><h4>${r.name}</h4>
+        ${st.map(([e,s],i)=>`<div class="m"><div class="p ${i<ADV?'w':''}"><b>${i+1}. ${av(e)}${nmC(e)}</b><span class="sc">${s.w}W–${s.l}L · ${s.pf-s.pa>0?'+':''}${s.pf-s.pa}</span></div></div>`).join('')}</div>`}).join('')}</div>`;
+      if(t.custom?.ko!=='none')html+=`<div class="sec">KNOCKOUT${t.custom?.ko==='double'?' — DOUBLE ELIMINATION':' — CROSS-OVER'}</div>`;
+    }
+    const deLabels=t.format==='double-elim'||t.custom?.ko==='double';
+    [['W',deLabels?'WINNERS BRACKET':''],['L','LOSERS BRACKET'],['GF','GRAND FINAL'],['3P','THIRD PLACE']].forEach(([k,label])=>{
+      const rs=t.rounds.filter(r=>r.kind===k);if(!rs.length)return;
+      html+=`${label?`<div class="sec">${label}</div>`:''}<div class="brk">${rs.map(r=>`<div class="rnd"><h4>${r.name}</h4>
+       ${r.matches.map(m=>`<div class="m">${m.court||m.time?`<div class="meta">${esc(m.court||'')}${m.court&&m.time?' · ':''}${esc(m.time||'')}</div>`:''}
+        <div class="p ${m.winner&&m.winner===m.a?'w':''}"><b>${av(m.a)}${nmC(m.a)}</b><span class="sc">${m.winner===m.a?esc(m.score):''}</span></div>
+        <div class="p ${m.winner&&m.winner===m.b?'w':''}"><b>${av(m.b)}${nmC(m.b)}</b><span class="sc">${m.winner===m.b?esc(m.score):''}</span></div></div>`).join('')}</div>`).join('')}</div>`;});
+  }
+  root.innerHTML=html;
+}
+function exportFixtures(id){
+  const t=DB.tournaments.find(x=>x.id===id);
+  const rows=[['round','entrant_a','entrant_b','court','time','score','winner']];
+  t.rounds.forEach(r=>r.matches.forEach(m=>rows.push([r.name,entName(t,m.a)||'TBD',entName(t,m.b)||'TBD',m.court,m.time,m.score,entName(t,m.winner)||''])));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  dl(new Blob(['\ufeff'+csv],{type:'text/csv'}),`fixtures_${t.name.replace(/\W+/g,'_')}.csv`);
+  toast('Fixtures exported — opens in Excel','ok');
+}
+function roundName(n){return n===2?'FINAL':n===4?'SEMIFINALS':n===8?'QUARTERFINALS':'ROUND OF '+n}
+function announceTour(id){const t=DB.tournaments.find(x=>x.id===id);
+  const list=new Set();ents(t).forEach(e=>entPlayers(t,e).forEach(pid=>list.add(pid)));
+  [...list].forEach(pid=>{const p=player(pid);notify(p,'Tournament notice',`${CFG.clubName}: ${t.name} on ${t.date}. Format: ${t.format} ${t.discipline}. Check the live bracket at the venue. Good luck!`,true)});
+  toast('Tournament announcement queued','ok');}
+
+/* ---------------- PLAYERS ---------------- */
+function vPlayers(){
+  const ps=DB.players.slice().sort((a,b)=>b.rating-a.rating);
+  $('#main').innerHTML=`
+  <div class="toolbar">
+   <input class="inp" id="pQ" placeholder="Search players…" oninput="filterPlayers(this.value)">
+   <button class="btn btn-ball" onclick="playerForm()">＋ Add player</button>
+   <button class="btn btn-g" onclick="exportCSV('players')">⬇ Export CSV (Excel)</button>
+  </div>
+  <div class="card"><h3>Roster & leaderboard <span class="tag bl">ELO rated</span></h3>
+   <div style="overflow-x:auto"><table id="pTable"><tr><th>#</th><th>Player</th><th>Tier</th><th>Rating</th><th>DUPR</th><th>W–L</th><th>No-shows</th><th>Channels</th><th></th></tr>
+   ${ps.map((p,i)=>`<tr data-n="${esc(p.name.toLowerCase())}"><td class="mono">${i+1}</td>
+    <td><div style="display:flex;align-items:center;gap:10px">${avatar(p,34)}<div><b>${esc(p.name)}</b><div style="font-size:12px;color:var(--dim)" class="mono">${esc(p.phone||'')}</div></div></div></td>
+    <td><span class="tag ${p.tier==='Member'?'bl':'cy'}">${p.tier}</span></td>
+    <td class="mono" style="color:var(--ball)">${p.rating}</td><td class="mono">${p.dupr||'—'}</td>
+    <td class="mono">${p.wins}–${p.losses}</td>
+    <td>${p.noShows?`<span class="tag ${p.noShows>1?'bad':'warn'}">${p.noShows}</span>`:'<span class="tag ok">0</span>'}</td>
+    <td class="mono" style="font-size:10.5px;color:var(--dim)">${Object.entries(p.channels||{}).filter(([k,v])=>v).map(([k])=>k).join(' · ')||'—'}</td>
+    <td><button class="btn btn-g btn-sm" onclick="playerForm('${p.id}')">Edit</button></td></tr>`).join('')}</table></div></div>`;
+}
+function filterPlayers(q){q=q.toLowerCase();document.querySelectorAll('#pTable tr[data-n]').forEach(r=>r.style.display=r.dataset.n.includes(q)?'':'none')}
+function playerForm(id){
+  const p=id?player(id):{name:'',phone:'',email:'',tier:'Guest',rating:1000,dupr:'',channels:{email:true,sms:true,whatsapp:false,viber:false,messenger:false}};
+  stagedPhoto=p.photo||null;
+  openModal(`<h2>${id?'Edit player':'Add player'}</h2>
+   <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+    <span id="photoPrev">${avatar(p,72)}</span>
+    <div><button class="btn btn-g btn-sm" onclick="pickPhoto()">📷 Upload</button>
+     <button class="btn btn-g btn-sm" onclick="openCamera()">📸 Camera</button>
+     ${p.photo?`<button class="btn btn-danger btn-sm" onclick="stagedPhoto=null;$('#photoPrev').innerHTML=avatar({name:$('#fN').value},72)">Remove</button>`:''}
+     <div style="font-size:11px;color:var(--dim);margin-top:6px">USB webcam or phone camera. Shown on roster, scoreboard, broadcast & winner celebration.</div></div></div>
+   <div id="camHost" style="display:none;margin-bottom:14px;background:var(--navy-2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center">
+    <video id="camVideo" autoplay playsinline muted style="width:100%;max-width:320px;border-radius:10px;background:#000;aspect-ratio:1;object-fit:cover"></video>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+     <button class="btn btn-ball btn-sm" onclick="snapCam()">📸 Capture</button>
+     <button class="btn btn-g btn-sm" onclick="switchCam()">🔄 Flip</button>
+     <button class="btn btn-g btn-sm" onclick="closeCam()">Cancel</button></div></div>
+   <div class="field"><label>Full name</label><input id="fN" class="inp" value="${esc(p.name)}"></div>
+   <div class="grid g2">
+    <div class="field"><label>Mobile</label><input id="fP" class="inp mono" value="${esc(p.phone)}" placeholder="0917 ..."></div>
+    <div class="field"><label>Email</label><input id="fE" class="inp" value="${esc(p.email)}"></div>
+   </div>
+   <div class="grid g2">
+    <div class="field"><label>Tier</label><select id="fT" class="inp"><option ${p.tier==='Guest'?'selected':''}>Guest</option><option ${p.tier==='Member'?'selected':''}>Member</option><option ${p.tier==='VIP'?'selected':''}>VIP</option></select></div>
+    <div class="field"><label>DUPR (optional)</label><input id="fD" class="inp mono" value="${esc(p.dupr)}"></div>
+   </div>
+   <div class="field"><label>Notification channels</label>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:6px 0">${['email','sms','whatsapp','viber','messenger'].map(ch=>
+      `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="ch_${ch}" ${p.channels?.[ch]?'checked':''}>${ch}</label>`).join('')}</div></div>
+   <div style="display:flex;gap:10px"><button class="btn btn-p" onclick="savePlayer('${id||''}')">Save player</button>
+   ${id?`<button class="btn btn-danger" onclick="delPlayer('${id}')">Delete</button>`:''}</div>`);
+}
+function savePlayer(id){
+  const data={name:$('#fN').value.trim(),phone:$('#fP').value,email:$('#fE').value,tier:$('#fT').value,dupr:$('#fD').value,photo:stagedPhoto,
+    channels:Object.fromEntries(['email','sms','whatsapp','viber','messenger'].map(ch=>[ch,$('#ch_'+ch).checked]))};
+  if(!data.name){toast('Name is required','bad');return}
+  let p;
+  if(id){p=player(id);Object.assign(p,data)}
+  else{p={id:uid('P'),rating:1000,wins:0,losses:0,noShows:0,joined:today(),...data};DB.players.push(p)}
+  queue('players',p);save();closeModal();toast('Player saved','ok');vPlayers();
+}
+function delPlayer(id){DB.players=DB.players.filter(p=>p.id!==id);save();closeModal();vPlayers()}
+
+/* ---------------- PAYMENTS ---------------- */
+function vPay(){
+  const ps=DB.payments.slice().reverse().slice(0,60);
+  const tday=DB.payments.filter(p=>p.date===today()).reduce((a,p)=>a+ +p.amount,0);
+  const t30=DB.payments.filter(p=>p.date>=addDays(today(),-29)).reduce((a,p)=>a+ +p.amount,0);
+  $('#main').innerHTML=`
+  <div class="grid g3">
+   <div class="card kpi"><div class="v">${peso(tday)}</div><div class="l">Collected today</div></div>
+   <div class="card kpi"><div class="v">${peso(t30)}</div><div class="l">Last 30 days</div></div>
+   <div class="card kpi"><div class="v">${DB.bookings.filter(b=>!b.paid&&b.status!=='cancelled'&&!b.parent).length}</div><div class="l">Unpaid bookings</div></div>
+  </div>
+  <div class="toolbar" style="margin-top:14px"><button class="btn btn-g" onclick="exportCSV('payments')">⬇ Export CSV (Excel)</button></div>
+  <div class="card"><h3>Ledger</h3><div style="overflow-x:auto"><table><tr><th>Date</th><th>Player</th><th>For</th><th>Method</th><th>Ref</th><th style="text-align:right">Amount</th></tr>
+   ${ps.map(p=>`<tr><td class="mono">${p.date}</td><td>${esc(player(p.playerId)?.name||'—')}</td><td>${esc(p.for)}</td>
+    <td><span class="tag cy">${esc(p.method)}</span></td><td class="mono">${esc(p.ref||'—')}</td>
+    <td class="mono" style="text-align:right;color:var(--ok)">${peso(p.amount)}</td></tr>`).join('')}</table></div></div>`;
+}
+
+/* ---------------- BI (Business Intelligence) ---------------- */
+function vBI(){
+  const d=today();
+  const days=[...Array(14)].map((_,i)=>addDays(d,-13+i));
+  const revByDay=days.map(x=>DB.payments.filter(p=>p.date===x).reduce((a,p)=>a+ +p.amount,0));
+  const hours={};DB.bookings.filter(b=>b.status!=='cancelled').forEach(b=>hours[b.hour]=(hours[b.hour]||0)+1);
+  const peak=Object.entries(hours).sort((a,b)=>b[1]-a[1])[0];
+  const methods={};DB.payments.forEach(p=>methods[p.method]=(methods[p.method]||0)+1);
+  const noShowRate=(100*DB.bookings.filter(b=>b.status==='no-show').length/Math.max(1,DB.bookings.length)).toFixed(1);
+  const courtLoad=CFG.courts.map(c=>DB.bookings.filter(b=>b.court===c&&b.status!=='cancelled').length);
+  $('#main').innerHTML=`
+  <div class="grid g4">
+   <div class="card kpi"><div class="v">${peso(revByDay.reduce((a,b)=>a+b,0))}</div><div class="l">Revenue · 14 days</div></div>
+   <div class="card kpi"><div class="v">${peak?hh(+peak[0]):'—'}</div><div class="l">Peak hour</div></div>
+   <div class="card kpi"><div class="v">${noShowRate}%</div><div class="l">No-show rate</div><div class="d ${+noShowRate>8?'dn':'up'}">${+noShowRate>8?'▲ above target':'▼ within target (8%)'}</div></div>
+   <div class="card kpi"><div class="v">${DB.players.filter(p=>p.tier!=='Guest').length}/${DB.players.length}</div><div class="l">Members / total players</div></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+   <div class="card"><h3>Revenue trend (14 days)</h3><canvas class="chart" id="chRev"></canvas></div>
+   <div class="card"><h3>Court load distribution</h3><canvas class="chart" id="chCourt"></canvas></div>
+   <div class="card"><h3>Payment mix</h3><canvas class="chart" id="chPay"></canvas></div>
+   <div class="card"><h3>Booking heat by hour</h3><canvas class="chart" id="chHour"></canvas></div>
+  </div>`;
+  drawLine($('#chRev'),days,[{data:revByDay,color:'#00C2D1'}]);
+  drawBars($('#chCourt'),CFG.courts.map(c=>c.replace('Court ','C')),courtLoad,'#C9F24B');
+  drawDonut($('#chPay'),Object.entries(methods).map(([l,v],i)=>({l,v,c:['#00C2D1','#C9F24B','#FFB020','#3DDC84','#FF5D5D'][i%5]})));
+  const hrs=range(CFG.openHour,CFG.closeHour);
+  drawBars($('#chHour'),hrs.map(h=>h+''),hrs.map(h=>hours[h]||0),'#00C2D1');
+}
+
+/* ---------------- CYRA AI / ML ---------------- */
+function linReg(y){const n=y.length,xs=[...Array(n)].map((_,i)=>i);
+  const mx=(n-1)/2,my=y.reduce((a,b)=>a+b,0)/n;
+  let num=0,den=0;xs.forEach((x,i)=>{num+=(x-mx)*(y[i]-my);den+=(x-mx)**2});
+  const b=den?num/den:0,a=my-b*mx;return{a,b,pred:x=>a+b*x};}
+function cyraForecast(){
+  const d=today(),hist=[...Array(21)].map((_,i)=>addDays(d,-20+i))
+    .map(x=>DB.bookings.filter(b=>b.date===x&&b.status!=='cancelled').length);
+  const r=linReg(hist);
+  const line=[0,1,2,3].map(k=>Math.max(0,Math.round(r.pred(hist.length-1+k))));
+  return{tomorrow:line[1],line,slope:r.b};
+}
+function noShowRisk(p){ // logistic-style score from no-show history + tier + recency
+  const base=(p.noShows||0)*1.1+(p.tier==='Guest'?0.6:0)-(p.wins+p.losses>5?0.4:0);
+  return 1/(1+Math.exp(-(base-1.2)));
+}
+function vAI(){
+  const fc=cyraForecast();
+  const risks=DB.players.map(p=>({p,r:noShowRisk(p)})).sort((a,b)=>b.r-a.r).slice(0,5);
+  const hours={};DB.bookings.filter(b=>b.status!=='cancelled').forEach(b=>hours[b.hour]=(hours[b.hour]||0)+1);
+  const sorted=Object.entries(hours).sort((a,b)=>b[1]-a[1]);
+  const peak=sorted[0],cold=sorted[sorted.length-1];
+  const trendTxt=fc.slope>0.1?'rising':fc.slope<-0.1?'declining':'steady';
+  const insights=[
+    {t:'Demand forecast',b:`Booking demand is <b>${trendTxt}</b> (slope ${fc.slope.toFixed(2)}/day). CYRA projects <b>${fc.tomorrow} bookings tomorrow</b> and ${fc.line[3]} in 3 days. ${fc.slope>0.1?'Consider opening pre-booking for peak slots.':fc.slope<-0.1?'Recommend a promo blast to lift mid-week demand.':'Capacity plan is stable.'}`,k:'bl'},
+    {t:'Dynamic pricing signal',b:peak?`Peak hour is <b>${hh(+peak[0])}</b> (${peak[1]} bookings) vs cold slot <b>${cold?hh(+cold[0]):'—'}</b>. Suggested: +20% peak-hour premium, −25% happy-hour rate on cold slots to balance utilization.`:'Insufficient data.',k:'cy'},
+    {t:'Retention watch',b:(()=>{const idle=DB.players.filter(p=>!DB.bookings.some(b=>b.playerId===p.id&&b.date>=addDays(today(),-14)));return idle.length?`<b>${idle.length} players</b> have not booked in 14 days: ${idle.slice(0,4).map(p=>esc(p.name)).join(', ')}${idle.length>4?'…':''}. One-tap win-back blast available below.`:'All players active in the last 14 days. Excellent retention.'})(),k:'ok'},
+    {t:'Matchmaking (rating-balanced)',b:(()=>{const s=DB.players.slice().sort((a,b)=>b.rating-a.rating);let out=[];for(let i=0;i+1<s.length&&out.length<3;i+=2)out.push(`${esc(s[i].name)} vs ${esc(s[i+1].name)} (Δ${Math.abs(s[i].rating-s[i+1].rating)})`);return 'Closest-rated pairings for competitive games: '+out.join(' · ');})(),k:'cy'}];
+  $('#main').innerHTML=`
+  <div class="card" style="border-color:rgba(201,242,75,.35)"><h3>CYRA Intelligence <span class="tag bl">on-device ML</span><span class="tag cy">linear regression · logistic risk · ELO</span></h3>
+   <div style="font-size:13px;color:var(--dim)">Models run locally in the browser over your operational data. No cloud inference cost. Zero data leaves the device unless synced to your own Google Sheet.</div></div>
+  <div class="grid g2" style="margin-top:14px">
+   ${insights.map(i=>`<div class="card"><h3><span class="tag ${i.k}">insight</span> ${i.t}</h3><div style="font-size:14px;line-height:1.6">${i.b}</div></div>`).join('')}
+  </div>
+  <div class="card" style="margin-top:14px"><h3>No-show risk model <span class="tag warn">logistic score</span></h3>
+   <table><tr><th>Player</th><th>History</th><th>Risk</th><th>Action</th></tr>
+   ${risks.map(({p,r})=>`<tr><td>${esc(p.name)}</td><td class="mono">${p.noShows||0} no-shows</td>
+    <td><span class="tag ${r>.6?'bad':r>.35?'warn':'ok'}">${Math.round(r*100)}%</span></td>
+    <td>${r>.35?`<button class="btn btn-g btn-sm" onclick="remindPlayer('${p.id}')">Send reminder</button>`:'<span style="color:var(--dim);font-size:12px">none needed</span>'}</td></tr>`).join('')}</table>
+   <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-ball" onclick="winBack()">🎯 Win-back blast to idle players</button>
+    <button class="btn btn-g" onclick="tomorrowReminders()">⏰ Queue tomorrow's booking reminders</button></div></div>`;
+}
+function remindPlayer(id){const p=player(id);notify(p,'Friendly reminder',`Hi ${p.name}! Quick reminder of your upcoming booking at ${CFG.clubName}. Please arrive 10 min early — reply if you need to reschedule.`);toast('Reminder queued','ok')}
+function winBack(){const idle=DB.players.filter(p=>!DB.bookings.some(b=>b.playerId===p.id&&b.date>=addDays(today(),-14)));
+  idle.forEach(p=>notify(p,'We miss you on court!',`Hi ${p.name}! It's been a while — book any off-peak court this week at ${CFG.clubName} and get 25% off. See you soon! 🥒🏓`,true));
+  toast(`Win-back queued to ${idle.length} players`,'ok')}
+function tomorrowReminders(){const t=addDays(today(),1);const bs=DB.bookings.filter(b=>b.date===t&&b.status==='confirmed'&&!b.parent);
+  bs.forEach(b=>{const p=player(b.playerId);notify(p,'Booking tomorrow',`Reminder: ${b.court} tomorrow ${hh(b.hour)} at ${CFG.clubName}. Reply C to confirm or R to reschedule.`)});
+  toast(`${bs.length} reminders queued for ${t}`,'ok')}
+
+/* ---------------- NOTIFICATIONS (multi-channel) ---------------- */
+function notify(p,subject,message,broadcast){
+  if(!p)return;
+  const chans=[];
+  const pc=p.channels||{};
+  if(CFG.notif.email.on&&pc.email&&p.email)chans.push('email');
+  if(CFG.notif.sms.on&&pc.sms&&p.phone)chans.push('sms');
+  if(CFG.notif.whatsapp.on&&pc.whatsapp&&p.phone)chans.push('whatsapp');
+  if(CFG.notif.viber.on&&pc.viber&&p.phone)chans.push('viber');
+  if(CFG.notif.messenger.on&&pc.messenger)chans.push('messenger');
+  if(!chans.length)chans.push('log'); // always at least log it
+  chans.forEach(ch=>{
+    const entry={id:uid('N'),ts:new Date().toISOString(),channel:ch,to:ch==='email'?p.email:p.phone,player:p.name,subject,message,status:'queued',broadcast:!!broadcast};
+    DB.notifLog.push(entry);
+    queue('notifications',entry);
+    dispatch(entry);
+  });
+  save();
+}
+async function dispatch(n){
+  try{
+    if(n.channel==='email'&&CFG.gasUrl){ // relay via Apps Script MailApp
+      await gasPost({action:'sendEmail',to:n.to,subject:n.subject,body:n.message,token:CFG.gasToken});
+      n.status='sent';
+    }else if(['sms','whatsapp','viber','messenger'].includes(n.channel)){
+      const hook=CFG.notif[n.channel]?.webhook;
+      if(hook){await fetch(hook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:n.to,message:n.message,channel:n.channel,club:CFG.clubName})});n.status='sent';}
+      else n.status='queued'; // stays queued until a webhook/relay is configured
+    }else if(n.channel==='log'){n.status='logged';}
+  }catch(e){n.status='failed';}
+  save();if(CUR==='notif')vNotif();
+}
+function vNotif(){
+  const log=DB.notifLog.slice().reverse().slice(0,80);
+  const chIcon={email:'✉️',sms:'📱',whatsapp:'🟢',viber:'🟣',messenger:'🔵',log:'📋'};
+  $('#main').innerHTML=`
+  <div class="grid g2">
+   <div class="card"><h3>Channel status</h3>
+    ${['email','sms','messenger','whatsapp','viber'].map(ch=>{const c=CFG.notif[ch];return `
+     <div class="setrow"><div><div class="t">${chIcon[ch]} ${ch.toUpperCase()}</div>
+      <div class="s">${ch==='email'?'Sent via Apps Script MailApp (free Gmail quota)':esc(c.note||'')}</div></div>
+      <label class="switch"><input type="checkbox" ${c.on?'checked':''} onchange="CFG.notif['${ch}'].on=this.checked;save()"><i></i></label></div>
+     ${ch!=='email'?`<input class="inp mono" style="font-size:12px;margin:4px 0 10px" placeholder="Webhook / relay URL for ${ch}" value="${esc(c.webhook||'')}" onchange="CFG.notif['${ch}'].webhook=this.value;save()">`:''}`}).join('')}
+   </div>
+   <div class="card"><h3>Compose blast</h3>
+    <div class="field"><label>Audience</label><select id="nAud" class="inp"><option value="all">All players</option><option value="Member">Members only</option><option value="Guest">Guests only</option></select></div>
+    <div class="field"><label>Subject</label><input id="nSub" class="inp" placeholder="Weekend Open Play"></div>
+    <div class="field"><label>Message</label><textarea id="nMsg" class="inp" rows="4" placeholder="Court announcement…"></textarea></div>
+    <button class="btn btn-ball" onclick="sendBlast()">Send to enabled channels</button>
+   </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Delivery log</h3>
+   ${log.length?`<div style="overflow-x:auto"><table><tr><th>When</th><th>Channel</th><th>To</th><th>Subject</th><th>Status</th></tr>
+   ${log.map(n=>`<tr><td class="mono" style="font-size:11.5px">${n.ts.slice(5,16).replace('T',' ')}</td>
+    <td>${chIcon[n.channel]||''} ${n.channel}</td><td>${esc(n.player)}</td><td>${esc(n.subject)}</td>
+    <td><span class="tag ${n.status==='sent'?'ok':n.status==='failed'?'bad':'warn'}">${n.status}</span></td></tr>`).join('')}</table></div>`
+   :'<div class="empty"><b>No notifications yet</b>Booking confirmations, reminders, and blasts will appear here.</div>'}</div>`;
+}
+function sendBlast(){
+  const aud=$('#nAud').value,sub=$('#nSub').value||'Club announcement',msg=$('#nMsg').value;
+  if(!msg){toast('Write a message first','warn');return}
+  const list=DB.players.filter(p=>aud==='all'||p.tier===aud);
+  list.forEach(p=>notify(p,sub,msg,true));
+  toast(`Blast queued to ${list.length} players`,'ok');vNotif();
+}
+
+/* ---------------- CONNECTORS (integration to other systems) ---------------- */
+function vConn(){
+  $('#main').innerHTML=`
+  <div class="card"><h3>Integration connectors <span class="tag cy">outbound REST</span></h3>
+   <div style="font-size:13px;color:var(--dim);margin-bottom:14px">Push NEXPICKLE events to any external system — accounting (NEXUS Trade), CRM, Zapier/Make, POS, LGU permits, or another CYRABELL app. Each connector receives a JSON payload on the selected triggers.</div>
+   <div id="connList">${CFG.connectors.map((c,i)=>`
+    <div class="setrow"><div><div class="t">${esc(c.name)}</div><div class="s mono">${esc(c.url)} · on: ${esc((c.on||[]).join(', '))}</div></div>
+     <div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" onclick="testConn(${i})">Test</button>
+     <button class="btn btn-danger btn-sm" onclick="CFG.connectors.splice(${i},1);save();vConn()">✕</button></div></div>`).join('')||'<div class="empty"><b>No connectors yet</b>Add one below.</div>'}</div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Add connector</h3>
+   <div class="field"><label>Name</label><input id="cN" class="inp" placeholder="NEXUS Trade ERP / Zapier / Accounting"></div>
+   <div class="field"><label>Endpoint URL</label><input id="cU" class="inp mono" placeholder="https://hooks.zapier.com/…"></div>
+   <div class="field"><label>Secret header value (optional, sent as X-NEXARCH-KEY)</label><input id="cS" class="inp mono"></div>
+   <div class="field"><label>Trigger events</label>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:4px 0">${['booking','payment','match','tournament'].map(t=>`<label style="display:flex;gap:6px;font-size:13px"><input type="checkbox" id="ct_${t}" checked>${t}</label>`).join('')}</div></div>
+   <button class="btn btn-p" onclick="addConn()">Add connector</button>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>Inbound API</h3>
+   <div style="font-size:13px;line-height:1.7;color:var(--mut)">Other systems can read/write NEXPICKLE data through your Apps Script Web App URL with the shared token:<br>
+   <span class="mono" style="color:var(--cyan)">POST ${esc(CFG.gasUrl||'(configure in Settings)')} {action:'pull'|'push', sheet, rows, token}</span><br>
+   The Google Sheet itself is also a live integration surface — connect Looker Studio, Excel Power Query, or AppSheet directly to it.</div></div>`;
+}
+function addConn(){
+  const c={name:$('#cN').value||'Connector',url:$('#cU').value,secret:$('#cS').value,
+    on:['booking','payment','match','tournament'].filter(t=>$('#ct_'+t).checked)};
+  if(!c.url){toast('Endpoint URL required','bad');return}
+  CFG.connectors.push(c);save();toast('Connector added','ok');vConn();
+}
+async function testConn(i){const c=CFG.connectors[i];
+  try{await fetch(c.url,{method:'POST',headers:{'Content-Type':'application/json','X-NEXARCH-KEY':c.secret||''},body:JSON.stringify({event:'test',source:'NEXPICKLE',club:CFG.clubName,ts:new Date().toISOString()})});toast('Test payload sent','ok')}
+  catch(e){toast('Connector unreachable: '+e.message,'bad')}}
+function fireConnectors(event,payload){
+  CFG.connectors.filter(c=>(c.on||[]).includes(event)).forEach(c=>{
+    fetch(c.url,{method:'POST',headers:{'Content-Type':'application/json','X-NEXARCH-KEY':c.secret||''},
+      body:JSON.stringify({event,source:'NEXPICKLE',club:CFG.clubName,ts:new Date().toISOString(),data:payload})}).catch(()=>{});});
+}
+
+/* ---------------- SETTINGS ---------------- */
+function vSet(){
+  $('#main').innerHTML=`
+  <div class="grid g2">
+   <div class="card"><h3>Club configuration</h3>
+    <div class="field"><label>Club name</label><input class="inp" value="${esc(CFG.clubName)}" onchange="CFG.clubName=this.value;save()"></div>
+    <div class="grid g2">
+     <div class="field"><label>Open hour</label><input class="inp" type="number" min="0" max="23" value="${CFG.openHour}" onchange="CFG.openHour=+this.value;save()"></div>
+     <div class="field"><label>Close hour</label><input class="inp" type="number" min="1" max="24" value="${CFG.closeHour}" onchange="CFG.closeHour=+this.value;save()"></div>
+    </div>
+    <div class="field"><label>Courts (one per line)</label><textarea class="inp mono" rows="4" onchange="CFG.courts=this.value.split('\\n').map(s=>s.trim()).filter(Boolean);save()">${esc(CFG.courts.join('\n'))}</textarea></div>
+    <div class="grid g3">
+     <div class="field"><label>Open play rate</label><input class="inp mono" type="number" value="${CFG.rateOpenPlay}" onchange="CFG.rateOpenPlay=+this.value;save()"></div>
+     <div class="field"><label>Reserved rate</label><input class="inp mono" type="number" value="${CFG.rateReserved}" onchange="CFG.rateReserved=+this.value;save()"></div>
+     <div class="field"><label>Coach rate</label><input class="inp mono" type="number" value="${CFG.rateCoach}" onchange="CFG.rateCoach=+this.value;save()"></div>
+    </div>
+   </div>
+   <div class="card"><h3>Cloud sync — Google Sheets backend</h3>
+    <div class="field"><label>Apps Script Web App URL</label><input class="inp mono" style="font-size:12px" value="${esc(CFG.gasUrl)}" onchange="CFG.gasUrl=this.value.trim();save()" placeholder="https://script.google.com/macros/s/…/exec"></div>
+    <div class="field"><label>API token (must match Code.gs)</label><input class="inp mono" value="${esc(CFG.gasToken)}" onchange="CFG.gasToken=this.value.trim();save()"></div>
+    <div class="field"><label>Auto-sync every (minutes, 0 = manual)</label><input class="inp mono" type="number" value="${CFG.autoSyncMin}" onchange="CFG.autoSyncMin=+this.value;save();scheduleAutoSync()"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+     <button class="btn btn-p" onclick="syncNow()">⇅ Sync now</button>
+     <button class="btn btn-g" onclick="exportAll()">⬇ Full backup (JSON)</button>
+     <button class="btn btn-g" onclick="importAll()">⬆ Restore backup</button></div>
+    <div class="hint">Outbox: <span class="mono">${DB.outbox.length}</span> pending changes · Last sync: <span class="mono">${DB.meta.lastSync?new Date(DB.meta.lastSync).toLocaleString():'never'}</span></div>
+   </div>
+   <div class="card"><h3>Local mode / Excel</h3>
+    <div style="font-size:13px;color:var(--mut);line-height:1.7;margin-bottom:12px">NEXPICKLE runs fully offline on this device (localStorage). For a local Excel workflow, export any register as CSV and open it directly in Excel; re-import via full backup JSON.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+     ${['bookings','players','payments','matches','notifLog'].map(k=>`<button class="btn btn-g btn-sm" onclick="exportCSV('${k}')">⬇ ${k}.csv</button>`).join('')}</div>
+   </div>
+   <div class="card"><h3>Security</h3>
+    ${DB.users.map(u=>`<div class="setrow"><div><div class="t">${esc(u.name)}</div><div class="s">role: ${u.role}</div></div>
+     <button class="btn btn-g btn-sm" onclick="changePin('${u.id}')">Change PIN</button></div>`).join('')}
+    <div class="hint">PINs are stored as SHA-256 hashes on this device and in your private Sheet. Roles gate module access: <b>admin</b> full · <b>staff</b> operations · <b>member</b> kiosk (dashboard, booking, scoring).</div>
+   </div>
+  </div>
+  <div class="hint" style="text-align:center;margin-top:18px">NEXPICKLE v${VERSION} · NEXARCH Systems Engineering · CYRABELL Platform · Iligan City<br>Precision. Scale. Control.</div>`;
+}
+async function changePin(id){
+  const pin=prompt('New PIN (4–8 digits):');
+  if(!pin||!/^\d{4,8}$/.test(pin)){toast('PIN must be 4–8 digits','bad');return}
+  const u=DB.users.find(x=>x.id===id);u.pin=await sha(pin);queue('users',u);save();toast('PIN updated','ok');
+}
+
+/* ---------------- EXPORT / IMPORT (Excel & backup) ---------------- */
+function exportCSV(key){
+  const rows=DB[key]||[];if(!rows.length){toast('Nothing to export','warn');return}
+  const cols=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(c=>!['log','pin','photo'].includes(c));
+  const csv=[cols.join(',')].concat(rows.map(r=>cols.map(c=>{let v=r[c];if(typeof v==='object')v=JSON.stringify(v);return '"'+String(v??'').replace(/"/g,'""')+'"'}).join(','))).join('\r\n');
+  dl(new Blob(['\ufeff'+csv],{type:'text/csv'}),`nexpickle_${key}_${today()}.csv`);
+  toast(key+'.csv exported — opens in Excel','ok');
+}
+function exportAll(){dl(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}),`nexpickle_backup_${today()}.json`)}
+function importAll(){const i=document.createElement('input');i.type='file';i.accept='.json';
+  i.onchange=()=>{const r=new FileReader();r.onload=()=>{try{DB=JSON.parse(r.result);save();load();toast('Backup restored','ok');go('dash')}catch(e){toast('Invalid backup file','bad')}};r.readAsText(i.files[0])};i.click()}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+
+/* ---------------- SYNC ENGINE (Google Sheets via Apps Script) ---------------- */
+function queue(sheet,row){DB.outbox.push({sheet,row:structuredClone(row),ts:Date.now()});
+  if(['bookings','payments','matches','tournaments'].includes(sheet))fireConnectors(sheet.replace(/s$/,''),row);
+  updateSyncPill();}
+async function gasPost(payload){
+  const r=await fetch(CFG.gasUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+  return r.json();}
+async function syncNow(){
+  if(!CFG.gasUrl){toast('Set your Apps Script URL in Settings first','warn');return}
+  $('#syncTxt').textContent='SYNCING…';
+  try{
+    const res=await gasPost({action:'sync',token:CFG.gasToken,outbox:DB.outbox,device:USER?.name||'device'});
+    if(res.ok){DB.outbox=[];DB.meta.lastSync=new Date().toISOString();
+      if(res.pull){['players','bookings','payments','tournaments','events'].forEach(k=>{if(res.pull[k]?.length)mergePull(k,res.pull[k])});}
+      save();toast('Synced with Google Sheets','ok');}
+    else throw new Error(res.error||'Sync rejected');
+  }catch(e){toast('Sync failed: '+e.message,'bad')}
+  updateSyncPill();if(CUR)go(CUR);
+}
+function mergePull(key,rows){
+  rows.forEach(r=>{const i=DB[key].findIndex(x=>x.id===r.id);if(i<0)DB[key].push(r);else if((r.updatedAt||'')>(DB[key][i].updatedAt||''))DB[key][i]=r;});
+}
+function updateSyncPill(){
+  const on=!!CFG.gasUrl;
+  $('#syncDot').className='dot '+(on?(DB.outbox.length?'':'ok'):'');
+  $('#syncTxt').textContent=on?(DB.outbox.length?DB.outbox.length+' PENDING':'SYNCED'):'LOCAL';
+}
+function scheduleAutoSync(){clearInterval(syncTimer);if(CFG.autoSyncMin>0&&CFG.gasUrl)syncTimer=setInterval(syncNow,CFG.autoSyncMin*60000)}
+
+/* ---------------- PWA install prompt ---------------- */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;
+  toast('Tip: install NEXPICKLE to your home screen from the browser menu')});
+
+/* ---------------- BOOT ---------------- */
+(async function boot(){
+  load();await seed();fillLogin();updateSyncPill();
+  const sess=sessionStorage.getItem('nexpickle_session');
+  if(sess){const u=DB.users.find(x=>x.id===sess);if(u){USER=u;$('#login').style.display='none';$('#app').classList.add('on');
+    $('#whoPill').textContent=u.name+' · '+u.role.toUpperCase();buildNav();go('dash');if(CFG.gasUrl)scheduleAutoSync();}}
+  $('#loginPin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+})();
+</script>
+</body>
+</html>
