@@ -148,6 +148,25 @@ canvas.chart{width:100%;height:220px;display:block}
 .slot.blocked{background:rgba(255,93,93,.12);border-color:rgba(255,93,93,.4);color:var(--bad);cursor:not-allowed}
 .slot.mine{background:rgba(201,242,75,.16);border-color:var(--ball);color:var(--ball)}
 .slot-head{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;text-align:center;padding:4px 0}
+.grid-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.grid-scroll .slot-grid{min-width:520px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{background:var(--navy-2);border:none;color:var(--mut);padding:8px 14px;cursor:pointer;font-size:13px;font-weight:500}
+.seg button.on{background:var(--panel-2);color:var(--ball)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .dow{font-family:var(--font-m);font-size:10px;letter-spacing:.12em;color:var(--dim);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal-cell{background:var(--navy-2);border:1px solid var(--line);border-radius:10px;min-height:64px;padding:6px 7px;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:filter .12s}
+.cal-cell:hover{filter:brightness(1.25)}
+.cal-cell.dim{opacity:.32;cursor:default}
+.cal-cell.today{border-color:var(--ball);box-shadow:inset 0 0 0 1px var(--ball)}
+.cal-cell .dn{font-family:var(--font-m);font-size:12px;color:var(--mut)}
+.cal-cell.today .dn{color:var(--ball);font-weight:700}
+.cal-badge{font-family:var(--font-m);font-size:10.5px;padding:2px 7px;border-radius:6px;align-self:flex-start;background:rgba(0,194,209,.15);color:var(--cyan)}
+.cal-badge.hot{background:rgba(201,242,75,.16);color:var(--ball)}
+.cal-badge.full{background:rgba(255,93,93,.15);color:var(--bad)}
+.cal-bar{height:4px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:auto}
+.cal-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--ball))}
+@media(max-width:860px){.cal-cell{min-height:56px;padding:5px}.cal .dow{font-size:9px}}
 
 .switch{position:relative;width:42px;height:24px;flex:none}
 .switch input{opacity:0;width:0;height:0}
@@ -160,7 +179,11 @@ canvas.chart{width:100%;height:220px;display:block}
 
 @media(max-width:860px){
   #app.on{grid-template-columns:1fr;grid-template-rows:52px 1fr 62px}
-  aside{display:none}
+  aside{position:fixed;left:0;top:0;bottom:0;width:264px;z-index:85;transform:translateX(-106%);transition:transform .22s ease;box-shadow:12px 0 40px rgba(0,0,0,.5);padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+  body.drawer aside{transform:none}
+  #drawerBg{position:fixed;inset:0;background:rgba(4,12,24,.62);backdrop-filter:blur(2px);z-index:84;display:none}
+  body.drawer #drawerBg{display:block}
+  #menuBtn{display:inline-flex}
   header{grid-column:1}
   main{grid-column:1;padding:14px;padding-bottom:80px}
   #tabbar{display:flex;grid-column:1;background:var(--navy-2);border-top:1px solid var(--line);justify-content:space-around;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
@@ -171,6 +194,7 @@ canvas.chart{width:100%;height:220px;display:block}
   .sb-score{font-size:clamp(48px,17vw,84px)}
   #modal .sheet{border-radius:18px 18px 0 0}
 }
+@media(min-width:861px){#menuBtn{display:none}}
 @media(min-width:861px){#modal{align-items:center;padding:20px}#modal .sheet{border-radius:18px}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -184,6 +208,7 @@ canvas.chart{width:100%;height:220px;display:block}
       <div class="brand">NEX<em>PICKLE</em></div>
     </div>
     <div class="tagline">Precision · Scale · Control</div>
+    <div id="clubBrandLogin"></div>
     <div class="field"><label>Operator</label>
       <select id="loginUser" class="inp"></select></div>
     <div class="field"><label>PIN</label>
@@ -202,11 +227,13 @@ canvas.chart{width:100%;height:220px;display:block}
       <div class="brand" style="font-size:19px">NEX<em>PICKLE</em></div>
     </div>
     <div class="tagline">Club Command Center</div>
+    <div id="clubBrand"></div>
     <div id="sideNav"></div>
     <div style="flex:1"></div>
     <button class="nav-btn" onclick="logout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sign out</button>
   </aside>
   <header>
+    <button id="menuBtn" class="btn btn-g btn-sm" style="padding:7px 10px" onclick="toggleDrawer()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
     <div id="viewTitle">Dashboard</div>
     <div class="spacer"></div>
     <span class="pill" id="syncPill"><span class="dot" id="syncDot"></span><span id="syncTxt">LOCAL</span></span>
@@ -215,6 +242,7 @@ canvas.chart{width:100%;height:220px;display:block}
   </header>
   <main id="main"></main>
   <nav id="tabbar"></nav>
+  <div id="drawerBg" onclick="toggleDrawer(false)"></div>
 </div>
 
 <div id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="modalBody"></div></div>
@@ -233,7 +261,7 @@ const LS_KEY='nexpickle_db_v1';
 
 /* ---------------- CONFIG (Settings-editable) ---------------- */
 const DEFAULT_CFG={
-  clubName:'NEXPICKLE Club', currency:'₱', timezone:'Asia/Manila',
+  clubName:'NEXPICKLE Club', clubLogo:'', clubAddress:'', clubPhone:'', currency:'₱', timezone:'Asia/Manila',
   courts:['Court 1','Court 2','Court 3','Court 4'],
   openHour:6, closeHour:22, slotMinutes:60,
   rateOpenPlay:150, rateReserved:400, rateMemberDiscount:.2, rateCoach:600,
@@ -253,8 +281,9 @@ const DEFAULT_CFG={
 
 /* ---------------- DATA LAYER (offline-first) ---------------- */
 let DB=null, CFG=null, USER=null, syncTimer=null;
-function blankDB(){return{cfg:structuredClone(DEFAULT_CFG),users:[],players:[],bookings:[],events:[],matches:[],tournaments:[],payments:[],notifLog:[],outbox:[],meta:{lastSync:null,seq:1}}}
+function blankDB(){return{cfg:structuredClone(DEFAULT_CFG),users:[],players:[],bookings:[],events:[],matches:[],tournaments:[],payments:[],notifLog:[],outbox:[],kiosk:{items:[],defaultSecs:10},meta:{lastSync:null,seq:1}}}
 function load(){try{DB=JSON.parse(localStorage.getItem(LS_KEY))||blankDB()}catch(e){DB=blankDB()}
+  DB.kiosk=DB.kiosk||{items:[],defaultSecs:10};DB.kiosk.items=DB.kiosk.items||[];
   CFG=Object.assign(structuredClone(DEFAULT_CFG),DB.cfg||{});
   CFG.notif=Object.assign(structuredClone(DEFAULT_CFG.notif),CFG.notif||{});
   DB.cfg=CFG;}
@@ -326,6 +355,7 @@ const ICONS={
  ai:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM19 15l1 2.5L22.5 18 20 19l-1 2.5L18 19l-2.5-1L18 15z"/></svg>',
  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg>',
  plug:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 01-6 6v0a6 6 0 01-6-6V8zM12 18v4"/></svg>',
+ tv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>',
  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'};
 const VIEWS=[
  {id:'dash',t:'Dashboard',i:'dash',sec:'Operations',roles:['admin','staff','member']},
@@ -337,7 +367,8 @@ const VIEWS=[
  {id:'pay',t:'Payments',i:'pay',roles:['admin','staff']},
  {id:'bi',t:'Intelligence (BI)',i:'bi',roles:['admin']},
  {id:'ai',t:'CYRA AI',i:'ai',roles:['admin','staff']},
- {id:'notif',t:'Notifications',i:'bell',sec:'System',roles:['admin','staff']},
+ {id:'kiosk',t:'Kiosk / Ads',i:'tv',sec:'System',roles:['admin','staff']},
+ {id:'notif',t:'Notifications',i:'bell',roles:['admin','staff']},
  {id:'conn',t:'Connectors',i:'plug',roles:['admin']},
  {id:'set',t:'Settings',i:'gear',roles:['admin']}];
 let CUR='dash';
@@ -345,12 +376,19 @@ function buildNav(){
   const vs=VIEWS.filter(v=>v.roles.includes(USER.role));
   $('#sideNav').innerHTML=vs.map(v=>(v.sec?`<div class="nav-sec">${v.sec}</div>`:'')+
     `<button class="nav-btn" data-v="${v.id}" onclick="go('${v.id}')">${ICONS[v.i]}${v.t}</button>`).join('');
-  const tabs=['dash','book','score','tour','players','set'].map(id=>vs.find(v=>v.id===id)).filter(Boolean).slice(0,5);
-  $('#tabbar').innerHTML=tabs.map(v=>`<button data-v="${v.id}" onclick="go('${v.id}')">${ICONS[v.i]}<span>${v.t.split(' ')[0]}</span></button>`).join('');
+  const tabs=['dash','book','score','tour'].map(id=>vs.find(v=>v.id===id)).filter(Boolean).slice(0,4);
+  $('#tabbar').innerHTML=tabs.map(v=>`<button data-v="${v.id}" onclick="go('${v.id}')">${ICONS[v.i]}<span>${v.t.split(' ')[0]}</span></button>`).join('')+
+   `<button onclick="toggleDrawer()" aria-label="Full menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg><span>Menu</span></button>`;
 }
-function go(id){CUR=id;const v=VIEWS.find(x=>x.id===id);$('#viewTitle').textContent=v.t;
+function toggleDrawer(force){
+  const on=force===undefined?!document.body.classList.contains('drawer'):force;
+  document.body.classList.toggle('drawer',on);
+}
+function go(id){
+  toggleDrawer(false);
+  CUR=id;const v=VIEWS.find(x=>x.id===id);$('#viewTitle').textContent=v.t;
   document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===id));
-  ({dash:vDash,book:vBook,plan:vPlan,score:vScore,tour:vTour,players:vPlayers,pay:vPay,bi:vBI,ai:vAI,notif:vNotif,conn:vConn,set:vSet})[id]();
+  ({dash:vDash,book:vBook,plan:vPlan,score:vScore,tour:vTour,players:vPlayers,pay:vPay,bi:vBI,ai:vAI,kiosk:vKiosk,notif:vNotif,conn:vConn,set:vSet})[id]();
   $('#main').scrollTop=0;}
 
 /* ---------------- CHART ENGINE (zero-dependency canvas) ---------------- */
@@ -418,11 +456,16 @@ function nextUpTable(tb){
 function checkIn(id){const b=DB.bookings.find(x=>x.id===id);if(!b)return;b.status='done';queue('bookings',b);save();toast('Checked in — enjoy the game!','ok');go(CUR)}
 
 /* ---------------- BOOKINGS ---------------- */
-let bookDate=today();
-function vBook(){
+let bookDate=today(),bookView='day';
+function vBook(){bookView==='month'?vBookMonth():vBookDay()}
+function bookToolbar(){
+  return `<span class="seg"><button class="${bookView==='day'?'on':''}" onclick="bookView='day';vBook()">Day grid</button><button class="${bookView==='month'?'on':''}" onclick="bookView='month';vBook()">📅 Calendar</button></span>`;
+}
+function vBookDay(){
   const tb=DB.bookings.filter(b=>b.date===bookDate&&b.status!=='cancelled');
   $('#main').innerHTML=`
   <div class="toolbar">
+    ${bookToolbar()}
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,-1);vBook()">‹</button>
     <input class="inp" type="date" value="${bookDate}" onchange="bookDate=this.value;vBook()">
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,1);vBook()">›</button>
@@ -431,14 +474,55 @@ function vBook(){
   </div>
   <div class="card">
    <h3>Court grid — ${bookDate} <span class="tag cy">${tb.length} booked</span></h3>
-   <div class="slot-grid" style="grid-template-columns:64px repeat(${CFG.courts.length},1fr)">
+   <div class="grid-scroll"><div class="slot-grid" style="grid-template-columns:64px repeat(${CFG.courts.length},1fr)">
     <div></div>${CFG.courts.map(c=>`<div class="slot-head">${esc(c)}</div>`).join('')}
     ${range(CFG.openHour,CFG.closeHour).map(h=>`<div class="slot-head" style="align-self:center">${hh(h)}</div>`+
       CFG.courts.map(c=>{const b=tb.find(x=>x.court===c&&x.hour===h);
         if(!b)return `<div class="slot" onclick="bookingForm('${c}',${h})">＋</div>`;
         const nm=player(b.playerId)?.name||'—';
         return `<div class="slot ${b.status==='done'?'mine':'booked'}" onclick="bookingCard('${b.id}')" title="${esc(nm)}">${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
+   </div></div>
+  </div>`;
+}
+function vBookMonth(){
+  const base=new Date(bookDate+'T00:00:00');
+  const y=base.getFullYear(),mo=base.getMonth();
+  const first=new Date(y,mo,1),startDow=first.getDay();
+  const daysInMonth=new Date(y,mo+1,0).getDate();
+  const slots=CFG.courts.length*(CFG.closeHour-CFG.openHour);
+  const monthName=first.toLocaleDateString('en-PH',{month:'long',year:'numeric'});
+  const cells=[];
+  for(let i=0;i<startDow;i++)cells.push('<div class="cal-cell dim"></div>');
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=new Date(y,mo,d).toLocaleDateString('en-CA');
+    const n=DB.bookings.filter(b=>b.date===ds&&b.status!=='cancelled').length;
+    const pct=Math.min(100,Math.round(100*n/slots));
+    cells.push(`<div class="cal-cell ${ds===today()?'today':''}" onclick="bookDate='${ds}';bookView='day';vBook()">
+      <div class="dn">${d}</div>
+      ${n?`<span class="cal-badge ${pct>=90?'full':pct>=50?'hot':''}">${n} bk${pct>=90?' · full':''}</span>`:''}
+      <div class="cal-bar"><i style="width:${pct}%"></i></div></div>`);
+  }
+  const mm=k=>{const x=new Date(y,mo+k,1);bookDate=x.toLocaleDateString('en-CA');vBook()};
+  window._calNav=mm;
+  $('#main').innerHTML=`
+  <div class="toolbar">
+    ${bookToolbar()}
+    <button class="btn btn-g btn-sm" onclick="_calNav(-1)">‹</button>
+    <span class="pill" style="font-size:13px">${monthName}</span>
+    <button class="btn btn-g btn-sm" onclick="_calNav(1)">›</button>
+    <div class="spacer" style="flex:1"></div>
+    <button class="btn btn-ball" onclick="bookingForm()">＋ New booking</button>
+  </div>
+  <div class="card"><h3>Month view <span class="tag cy">tap a day to open its court grid</span></h3>
+   <div class="cal">
+    ${['SUN','MON','TUE','WED','THU','FRI','SAT'].map(d=>`<div class="dow">${d}</div>`).join('')}
+    ${cells.join('')}
    </div>
+   <div style="display:flex;gap:14px;margin-top:12px;font-size:11px;color:var(--dim);flex-wrap:wrap">
+    <span><span class="cal-badge">n bk</span> bookings</span>
+    <span><span class="cal-badge hot">busy</span> ≥50% capacity</span>
+    <span><span class="cal-badge full">full</span> ≥90% capacity</span>
+    <span>bar = day utilization</span></div>
   </div>`;
 }
 function range(a,b){return[...Array(b-a)].map((_,i)=>a+i)}
@@ -550,6 +634,27 @@ function avatar(p,sz){sz=sz||36;
   const init=(p?.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
   return `<span class="av-init" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*.38)}px">${init}</span>`}
 let stagedPhoto=null;
+/* club identity branding — sidebar, login, casts */
+function clubBrandHTML(compact){
+  if(!(CFG.clubLogo||CFG.clubAddress||CFG.clubPhone))return '';
+  return `<div style="display:flex;align-items:center;gap:10px;padding:${compact?'6px 8px 10px':'2px 0 14px'}">
+   ${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="width:42px;height:42px;object-fit:contain;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:3px" alt="club logo">`:''}
+   <div style="min-width:0"><div style="font-weight:600;font-size:13px;line-height:1.2">${esc(CFG.clubName)}</div>
+   ${CFG.clubAddress?`<div style="font-size:10.5px;color:var(--dim);line-height:1.35">${esc(CFG.clubAddress)}</div>`:''}
+   ${CFG.clubPhone?`<div class="mono" style="font-size:10.5px;color:var(--dim)">☎ ${esc(CFG.clubPhone)}</div>`:''}</div></div>`;
+}
+function applyBranding(){
+  const a=$('#clubBrand');if(a)a.innerHTML=clubBrandHTML(true);
+  const b=$('#clubBrandLogin');if(b)b.innerHTML=clubBrandHTML(false);
+}
+function pickClubLogo(){const i=document.createElement('input');i.type='file';i.accept='image/*';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      const max=240,sc=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      CFG.clubLogo=c.toDataURL('image/png');save();applyBranding();toast('Club logo updated','ok');if(CUR==='set')vSet();};
+      img.src=r.result};r.readAsDataURL(f)};i.click()}
 function pickPhoto(){const i=document.createElement('input');i.type='file';i.accept='image/*';
   i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
     r.onload=()=>{const img=new Image();img.onload=()=>{
@@ -638,7 +743,9 @@ function renderLive(){
      <div class="sb-games">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m.gamesB?'w':''}"></span>`).join('')}</div></div>
    </div>
    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
-    <button class="btn btn-ball btn-sm" onclick="openCast()">📺 Cast to monitor</button>
+    <button class="btn btn-ball btn-sm" onclick="castToTV('score')">📡 Smart TV</button>
+    <button class="btn ${tabletCast?'btn-ball':'btn-g'} btn-sm" onclick="castToTablet()">📱 Tablet / phone ${tabletCast?'●':''}</button>
+    <button class="btn btn-g btn-sm" onclick="openCast()">📺 Cast window</button>
     <button class="btn btn-g btn-sm" onclick="undoPoint()">↶ Undo</button>
     <button class="btn btn-g btn-sm" onclick="sideOut(true)">Side-out / fault</button>
     <button class="btn btn-danger btn-sm" onclick="abandonMatch()">Abandon</button>
@@ -688,42 +795,53 @@ function openCast(){
    .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
    .confetti i{position:absolute;top:-8vh;width:.75vw;height:1.7vw;border-radius:.2vw;animation:fall linear infinite}
    @media (prefers-reduced-motion:reduce){*{animation:none!important}}</style></head>
-   <body><div class="top" id="cTop"></div><div class="stage" id="cStage"></div>
-   <div class="bot">NEXPICKLE · NEXARCH SYSTEMS ENGINEERING · PRECISION · SCALE · CONTROL</div></body></html>`);
+   <body><div class="top" id="cTop" style="display:flex;align-items:center;justify-content:center;gap:1vw">${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="height:4.2vh;object-fit:contain">`:''}<span id="cTopTxt"></span></div><div class="stage" id="cStage"></div>
+   <div class="bot">${CFG.clubAddress?esc(CFG.clubAddress).toUpperCase()+' · ':''}${CFG.clubPhone?'☎ '+esc(CFG.clubPhone)+' · ':''}NEXPICKLE · NEXARCH SYSTEMS ENGINEERING</div></body></html>`);
   castWin.document.close();
   renderCast();toast('Broadcast window opened — move it to your monitor and press F11','ok');
 }
 function castAv(p){return p?(p.photo?`<img src="${p.photo}">`:`<span class="init">${(p.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase()}</span>`):''}
-function renderCast(msg){
-  if(!castWin||castWin.closed)return;
-  const top=castWin.document.getElementById('cTop'),st=castWin.document.getElementById('cStage');
-  if(!top||!st)return;
-  if(msg){top.textContent=esc(CFG.clubName).toUpperCase();st.innerHTML=`<div></div><div class="win">${msg}</div><div></div>`;return}
-  const m=liveMatch;if(!m)return;
+function castFoot(){return `${CFG.clubAddress?esc(CFG.clubAddress).toUpperCase()+' · ':''}${CFG.clubPhone?'☎ '+esc(CFG.clubPhone)+' · ':''}NEXPICKLE · NEXARCH SYSTEMS ENGINEERING`}
+function scoreCastContent(){
+  const m=liveMatch;if(!m)return null;
   const call=m.rally?`${m.scoreA}–${m.scoreB}`:`${m.server==='A'?m.scoreA:m.scoreB}–${m.server==='A'?m.scoreB:m.scoreA}–${m.serverNum}`;
-  top.textContent=`${CFG.clubName.toUpperCase()} · LIVE ${m.format==='doubles'?'DOUBLES':'SINGLES'} · GAME ${m.gamesA+m.gamesB+1} · ${call}`;
+  const top=`${CFG.clubName.toUpperCase()} · LIVE ${m.format==='doubles'?'DOUBLES':'SINGLES'} · GAME ${m.gamesA+m.gamesB+1} · ${call}`;
   const side=s=>`<div><div class="duo">${sidePlayers(m,s).map(castAv).join('')}</div>
     <div class="nm">${esc(sideName(m,s))}</div>
     <div class="sv">${m.server===s?'● SERVING'+(m.rally?'':' #'+m.serverNum):''}</div>
     <div class="sc">${m['score'+s]}</div>
     <div class="gm">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m['games'+s]?'w':''}"></span>`).join('')}</div></div>`;
-  st.innerHTML=side('A')+`<div class="mid">VS</div>`+side('B');
+  return{top,stage:side('A')+`<div class="mid">VS</div>`+side('B')};
+}
+function applyCastPopup(c){
+  if(!castWin||castWin.closed)return;
+  const top=castWin.document.getElementById('cTopTxt')||castWin.document.getElementById('cTop'),st=castWin.document.getElementById('cStage');
+  if(!top||!st)return;
+  top.textContent=c.top;st.innerHTML=c.stage;
+}
+function renderCast(){
+  const c=scoreCastContent();if(!c)return;
+  const payload={kind:'score',top:c.top,stage:c.stage,logo:CFG.clubLogo,foot:castFoot()};
+  if(tvMode==='score')pushTV(payload);
+  publishLive(payload);
+  if(kioskCurrent&&kioskCurrent.type==='score'&&(kioskTargets.popup||kioskTargets.tv))deliverKioskSlide();
+  applyCastPopup(c);
 }
 function confettiHTML(n){const cols=['#C9F24B','#00C2D1','#FFB020','#FF5D5D','#EAF2FB','#3DDC84'];let h='<div class="confetti">';
   for(let i=0;i<(n||80);i++)h+=`<i style="left:${(Math.random()*100).toFixed(1)}vw;background:${cols[i%cols.length]};animation-duration:${(2.6+Math.random()*3).toFixed(2)}s;animation-delay:${(Math.random()*2).toFixed(2)}s"></i>`;
   return h+'</div>'}
 function castWinner(m,w){
-  if(!castWin||castWin.closed)return;
-  const top=castWin.document.getElementById('cTop'),st=castWin.document.getElementById('cStage');
-  if(!top||!st)return;
-  top.textContent=CFG.clubName.toUpperCase()+' · MATCH RESULT · '+(m.format==='doubles'?'DOUBLES':'SINGLES');
-  st.innerHTML=`<div></div><div class="winbox">
+  const top=CFG.clubName.toUpperCase()+' · MATCH RESULT · '+(m.format==='doubles'?'DOUBLES':'SINGLES');
+  const stage=`<div></div><div class="winbox">
     <div class="wphotos">${sidePlayers(m,w).map(castAv).join('')}</div>
     <div class="wtitle">🏆 WINNER</div>
     <div class="wname">${esc(sideName(m,w))}</div>
     <div class="wsub">GAMES ${Math.max(m.gamesA,m.gamesB)}–${Math.min(m.gamesA,m.gamesB)}${(m.gameScores&&m.gameScores.length)?' · '+m.gameScores.join(' · '):''}</div>
     <div class="wsub" style="color:#8FA3BF">CONGRATULATIONS! · ${esc(CFG.clubName).toUpperCase()}</div>
   </div><div></div>`+confettiHTML();
+  if(tvMode==='score')pushTV({kind:'score',top,stage,logo:CFG.clubLogo,foot:castFoot()});
+  publishLive({kind:'score',top,stage,logo:CFG.clubLogo,foot:castFoot()});
+  applyCastPopup({top,stage});
 }
 function snapshot(){liveMatch.log.push(JSON.stringify({scoreA:liveMatch.scoreA,scoreB:liveMatch.scoreB,server:liveMatch.server,serverNum:liveMatch.serverNum,gamesA:liveMatch.gamesA,gamesB:liveMatch.gamesB}))}
 function undoPoint(){const m=liveMatch;if(!m.log.length)return;Object.assign(m,JSON.parse(m.log.pop()));save();renderLive()}
@@ -824,6 +942,7 @@ function tourCard(t){
     ${t.status==='draft'?`<button class="btn btn-ball btn-sm" onclick="startTour('${t.id}')">Generate bracket & start</button>`:''}
     ${t.entryFee?`<button class="btn btn-g btn-sm" onclick="feesModal('${t.id}')">💳 Fees</button>`:''}
     ${t.status!=='draft'?`<button class="btn btn-g btn-sm" onclick="schedModal('${t.id}')">🗓 Schedule</button>
+    <button class="btn btn-ball btn-sm" onclick="castToTV('bracket','${t.id}')">📡 Smart TV</button>
     <button class="btn btn-g btn-sm" onclick="castBracket('${t.id}')">📺 Cast bracket</button>
     <button class="btn btn-g btn-sm" onclick="exportFixtures('${t.id}')">⬇ Fixtures</button>`:''}
     <button class="btn btn-g btn-sm" onclick="announceTour('${t.id}')">Announce</button></h3>
@@ -1258,11 +1377,13 @@ function castBracket(id){
   toast('Bracket board opened — move to the venue monitor and press F11','ok');
 }
 function renderBracketCast(t){
-  if(!bCastWin||bCastWin.closed||bCastTid!==t.id)return;
-  const root=bCastWin.document.getElementById('root');if(!root)return;
+  const send=tvMode==='bracket'&&tvTid===t.id;
+  const popup=bCastWin&&!bCastWin.closed&&bCastTid===t.id;
+  if(!send&&!popup)return;
   const av=id=>entPlayers(t,id).map(pid=>{const p=player(pid);return p&&p.photo?`<img src="${p.photo}">`:''}).join('');
   const nmC=id=>!id?'<span style="color:#5C7495">TBD</span>':id==='BYE'?'<span style="color:#5C7495">BYE</span>':esc(entName(t,id));
-  let html=`<h1>${esc(t.name)} <em>· LIVE BRACKET</em></h1><div class="sub">${esc(CFG.clubName).toUpperCase()} · ${t.format.toUpperCase()} · ${t.discipline.toUpperCase()} · ${t.date||''}</div>`;
+  let html=`<div style="display:flex;align-items:center;gap:1.2vw">${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="height:5vh;object-fit:contain;border-radius:8px">`:''}<h1>${esc(t.name)} <em>· LIVE BRACKET</em></h1></div>
+  <div class="sub">${esc(CFG.clubName).toUpperCase()} · ${t.format.toUpperCase()} · ${t.discipline.toUpperCase()} · ${t.date||''}${CFG.clubAddress?' · '+esc(CFG.clubAddress).toUpperCase():''}${CFG.clubPhone?' · ☎ '+esc(CFG.clubPhone):''}</div>`;
   if(t.status==='done')html+=`<div class="champbox"><div style="font-size:3vw">🏆</div>
     <div style="display:flex">${entPlayers(t,t.champion).map(pid=>{const p=player(pid);return p&&p.photo?`<img src="${p.photo}">`:`<span class="init">${(p?.name||'?').split(' ').map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase()}</span>`}).join('')}</div>
     <div><div class="t1">CHAMPION — ${esc(entName(t,t.champion))}</div>
@@ -1287,7 +1408,8 @@ function renderBracketCast(t){
         <div class="p ${m.winner&&m.winner===m.a?'w':''}"><b>${av(m.a)}${nmC(m.a)}</b><span class="sc">${m.winner===m.a?esc(m.score):''}</span></div>
         <div class="p ${m.winner&&m.winner===m.b?'w':''}"><b>${av(m.b)}${nmC(m.b)}</b><span class="sc">${m.winner===m.b?esc(m.score):''}</span></div></div>`).join('')}</div>`).join('')}</div>`;});
   }
-  root.innerHTML=html;
+  if(send)pushTV({kind:'bracket',html});
+  if(popup){const root=bCastWin.document.getElementById('root');if(root)root.innerHTML=html;}
 }
 function exportFixtures(id){
   const t=DB.tournaments.find(x=>x.id===id);
@@ -1574,7 +1696,15 @@ function vSet(){
   $('#main').innerHTML=`
   <div class="grid g2">
    <div class="card"><h3>Club configuration</h3>
-    <div class="field"><label>Club name</label><input class="inp" value="${esc(CFG.clubName)}" onchange="CFG.clubName=this.value;save()"></div>
+    <div class="field"><label>Club logo</label>
+     <div style="display:flex;align-items:center;gap:12px">
+      ${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="width:56px;height:56px;object-fit:contain;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:4px">`:`<span class="av-init" style="width:56px;height:56px;font-size:12px">LOGO</span>`}
+      <div><button class="btn btn-g btn-sm" onclick="pickClubLogo()">🖼 ${CFG.clubLogo?'Change logo':'Upload logo'}</button>
+       ${CFG.clubLogo?`<button class="btn btn-danger btn-sm" onclick="CFG.clubLogo='';save();applyBranding();vSet()">Remove</button>`:''}
+       <div style="font-size:11px;color:var(--dim);margin-top:5px">Shown on the sidebar, login screen, and both broadcast/TV screens. Auto-resized on-device (PNG, transparency kept).</div></div></div></div>
+    <div class="field"><label>Club name</label><input class="inp" value="${esc(CFG.clubName)}" onchange="CFG.clubName=this.value;save();applyBranding()"></div>
+    <div class="field"><label>Address</label><input class="inp" value="${esc(CFG.clubAddress)}" placeholder="Buru-un, Iligan City, Lanao del Norte" onchange="CFG.clubAddress=this.value;save();applyBranding()"></div>
+    <div class="field"><label>Telephone / mobile</label><input class="inp mono" value="${esc(CFG.clubPhone)}" placeholder="+63 905 251 5051" onchange="CFG.clubPhone=this.value;save();applyBranding()"></div>
     <div class="grid g2">
      <div class="field"><label>Open hour</label><input class="inp" type="number" min="0" max="23" value="${CFG.openHour}" onchange="CFG.openHour=+this.value;save()"></div>
      <div class="field"><label>Close hour</label><input class="inp" type="number" min="1" max="24" value="${CFG.closeHour}" onchange="CFG.closeHour=+this.value;save()"></div>
@@ -1657,6 +1787,363 @@ function updateSyncPill(){
 }
 function scheduleAutoSync(){clearInterval(syncTimer);if(CFG.autoSyncMin>0&&CFG.gasUrl)syncTimer=setInterval(syncNow,CFG.autoSyncMin*60000)}
 
+/* ---------------- KIOSK / DIGITAL SIGNAGE ----------------
+   Rotating playlist: YouTube ads, pictures, announcements, live scores.
+   Plays in a popup window (wired/HDMI TV) or over Wi-Fi to a Smart TV. */
+let kWin=null,kioskTimer=null,kioskIdx=-1,kioskTargets={popup:false,tv:false},kioskCurrent=null;
+function ytId(u){try{const url=new URL(u);
+  if(url.hostname.includes('youtu.be'))return url.pathname.slice(1).split('/')[0];
+  if(url.pathname.startsWith('/shorts/'))return url.pathname.split('/')[2]||'';
+  if(url.pathname.startsWith('/embed/'))return url.pathname.split('/')[2]||'';
+  return url.searchParams.get('v')||'';}catch(e){return ''}}
+function kioskBrandStrip(){return `<div style="position:absolute;left:2vw;bottom:2vh;display:flex;align-items:center;gap:.8vw;font-family:'JetBrains Mono',monospace;font-size:1vw;color:#8FA3BF;letter-spacing:.2em;z-index:6">${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="height:3.6vh;object-fit:contain">`:''}<span>${esc(CFG.clubName).toUpperCase()}${CFG.clubPhone?' · ☎ '+esc(CFG.clubPhone):''}</span></div>`}
+function kioskSlideHTML(it){
+  const brand=kioskBrandStrip();
+  if(it.type==='youtube')
+    return `<iframe src="https://www.youtube.com/embed/${it.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${it.videoId}&modestbranding=1&rel=0&playsinline=1" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay; encrypted-media" allowfullscreen></iframe>${it.title?`<div style="position:absolute;top:2.5vh;left:0;right:0;text-align:center;font-family:'Chakra Petch',sans-serif;font-size:2.4vw;color:#EAF2FB;text-shadow:0 2px 18px #000;z-index:5">${esc(it.title)}</div>`:''}${brand}`;
+  if(it.type==='image')
+    return `<img src="${it.img}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#05101F">${it.title?`<div style="position:absolute;top:2.5vh;left:0;right:0;text-align:center;font-family:'Chakra Petch',sans-serif;font-size:2.6vw;color:#EAF2FB;text-shadow:0 2px 18px #000">${esc(it.title)}</div>`:''}${brand}`;
+  if(it.type==='text')
+    return `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 8vw;background:radial-gradient(900px 500px at 70% -10%,#15335C,transparent),#0B1F3A">
+      ${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="height:9vh;object-fit:contain;margin-bottom:3vh">`:''}
+      <div style="font-family:'JetBrains Mono',monospace;letter-spacing:.4em;font-size:1.2vw;color:#00C2D1;margin-bottom:2vh">ANNOUNCEMENT</div>
+      <div style="font-family:'Chakra Petch',sans-serif;font-size:4.4vw;font-weight:700;color:#C9F24B;line-height:1.15;margin-bottom:2.5vh">${esc(it.title||'')}</div>
+      <div style="font-size:1.9vw;color:#EAF2FB;line-height:1.55;max-width:70vw">${esc(it.body||'').replace(/\n/g,'<br>')}</div></div>${brand}`;
+  if(it.type==='score'){
+    const c=scoreCastContent();
+    if(c)return `<div style="position:absolute;top:2.5vh;left:0;right:0;text-align:center;font-family:'JetBrains Mono',monospace;letter-spacing:.35em;font-size:1.4vw;color:#00C2D1;z-index:5">${esc(c.top)}</div><div class="stage" style="position:absolute;left:0;right:0;top:8vh;bottom:7vh">${c.stage}</div>${brand}`;
+    const next=DB.bookings.filter(b=>b.date===today()&&b.status==='confirmed'&&b.hour>=new Date().getHours()&&!b.parent).sort((a,b)=>a.hour-b.hour).slice(0,4);
+    return `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#0B1F3A">
+      ${CFG.clubLogo?`<img src="${CFG.clubLogo}" style="height:12vh;object-fit:contain;margin-bottom:2.5vh">`:''}
+      <div style="font-family:'Chakra Petch',sans-serif;font-size:4.6vw;font-weight:700;color:#EAF2FB">${esc(CFG.clubName)}</div>
+      <div style="font-family:'JetBrains Mono',monospace;letter-spacing:.35em;font-size:1.3vw;color:#C9F24B;margin:1.5vh 0 3vh">NO LIVE MATCH · OPEN FOR PLAY</div>
+      ${next.length?`<div style="font-family:'JetBrains Mono',monospace;font-size:1.1vw;color:#00C2D1;letter-spacing:.25em;margin-bottom:1vh">NEXT ON COURT</div>
+      ${next.map(b=>`<div style="font-size:1.6vw;color:#8FA3BF;margin:.4vh 0"><b style="color:#EAF2FB">${hh(b.hour)}</b> · ${esc(b.court)} · ${esc(player(b.playerId)?.name||'')}</div>`).join('')}`:''}
+      </div>${brand}`;
+  }
+  return '';
+}
+function kioskItems(){return DB.kiosk.items.filter(i=>i.on!==false)}
+function startKiosk(target){
+  const items=kioskItems();
+  if(!items.length){toast('Add and enable at least one kiosk item first','warn');return}
+  if(target==='popup'){openKioskWindow();kioskTargets.popup=true}
+  else{kioskTargets.tv=true;castToTV('kiosk')}
+  kioskIdx=-1;advanceKiosk();
+  toast('Kiosk playing · '+items.length+' slides','ok');
+}
+function stopKiosk(){clearTimeout(kioskTimer);kioskTimer=null;kioskCurrent=null;kioskTargets={popup:false,tv:false};
+  if(kWin&&!kWin.closed)kWin.close();kWin=null;if(CUR==='kiosk')vKiosk();toast('Kiosk stopped')}
+function advanceKiosk(){
+  clearTimeout(kioskTimer);
+  const items=kioskItems();
+  if(!items.length){stopKiosk();return}
+  if(kioskTargets.popup&&(!kWin||kWin.closed)){kioskTargets.popup=false;if(!kioskTargets.tv){stopKiosk();return}}
+  kioskIdx=(kioskIdx+1)%items.length;
+  kioskCurrent=items[kioskIdx];
+  deliverKioskSlide();
+  kioskTimer=setTimeout(advanceKiosk,Math.max(3,+kioskCurrent.secs||DB.kiosk.defaultSecs||10)*1000);
+  if(CUR==='kiosk')vKiosk();
+}
+function deliverKioskSlide(){
+  if(!kioskCurrent)return;
+  const html=kioskSlideHTML(kioskCurrent);
+  if(kioskTargets.popup&&kWin&&!kWin.closed){const s=kWin.document.getElementById('kSlide');if(s)s.innerHTML=html}
+  if(kioskTargets.tv)pushTV({kind:'kiosk',html});
+}
+function openKioskWindow(){
+  kWin=window.open('','nexpickle_kiosk','width=1280,height=720');
+  if(!kWin){toast('Pop-up blocked — allow pop-ups to launch the kiosk','bad');return}
+  kWin.document.write(`<!DOCTYPE html><html><head><title>${esc(CFG.clubName)} · Kiosk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>body{margin:0;background:#0B1F3A;color:#EAF2FB;font-family:Inter,sans-serif;height:100vh;overflow:hidden}
+  #kSlide{position:fixed;inset:0}
+  .stage{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;padding:0 4vw}
+  .duo{display:flex;justify-content:center;margin-bottom:2vh}
+  .duo img,.duo .init{width:11vw;height:11vw;max-width:170px;max-height:170px;border-radius:50%;object-fit:cover;border:4px solid #00C2D1;background:#122A4A;margin:0 -1vw}
+  .duo .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:4vw;color:#00C2D1;font-weight:700}
+  .nm{font-size:2.6vw;font-weight:600;min-height:3.4vw}
+  .sv{font-family:'JetBrains Mono',monospace;font-size:1.3vw;color:#C9F24B;letter-spacing:.25em;min-height:2vw;margin-top:.6vh}
+  .sc{font-family:'Chakra Petch';font-size:15vw;font-weight:700;line-height:1;color:#C9F24B;text-shadow:0 0 60px rgba(201,242,75,.35)}
+  .gm{display:flex;gap:.8vw;justify-content:center;margin-top:1.5vh}
+  .gm span{width:1.4vw;height:1.4vw;border-radius:50%;border:2px solid #1E3A61}.gm span.w{background:#C9F24B;border-color:#C9F24B}
+  .mid{font-family:'JetBrains Mono',monospace;color:#5C7495;font-size:1.2vw;letter-spacing:.2em}</style></head>
+  <body><div id="kSlide"><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;letter-spacing:.3em;color:#5C7495;font-size:1.4vw">LOADING KIOSK…</div></div></body></html>`);
+  kWin.document.close();
+}
+/* manager UI */
+function vKiosk(){
+  const items=DB.kiosk.items;
+  const running=!!kioskTimer;
+  const thumb=it=>it.type==='youtube'?`<img src="https://img.youtube.com/vi/${it.videoId}/mqdefault.jpg" style="width:64px;height:40px;object-fit:cover;border-radius:6px">`
+    :it.type==='image'?`<img src="${it.img}" style="width:64px;height:40px;object-fit:cover;border-radius:6px">`
+    :it.type==='text'?'<span style="font-size:22px">📢</span>':'<span style="font-size:22px">🏓</span>';
+  $('#main').innerHTML=`
+  <div class="toolbar">
+   <button class="btn btn-g btn-sm" onclick="kioskAddYT()">▶ YouTube</button>
+   <button class="btn btn-g btn-sm" onclick="kioskAddImg()">🖼 Picture</button>
+   <button class="btn btn-g btn-sm" onclick="kioskAddText()">📢 Announcement</button>
+   <button class="btn btn-g btn-sm" onclick="kioskAddScore()">🏓 Live scores</button>
+   <div class="spacer" style="flex:1"></div>
+   ${running?`<span class="pill"><span class="dot ok"></span>PLAYING · slide ${kioskIdx+1}/${kioskItems().length}</span>
+    <button class="btn btn-danger btn-sm" onclick="stopKiosk()">■ Stop</button>`
+   :`<button class="btn btn-g" onclick="startKiosk('popup')">📺 Kiosk window (HDMI)</button>
+    <button class="btn btn-ball" onclick="startKiosk('tv')">📡 Smart TV (Wi-Fi)</button>`}
+  </div>
+  <div class="card"><h3>Playlist <span class="tag cy">${items.length} items</span><span class="tag bl">loops continuously</span></h3>
+   ${items.length?`<div style="overflow-x:auto"><table><tr><th></th><th>Type</th><th>Content</th><th>Secs</th><th>On</th><th>Order</th><th></th></tr>
+    ${items.map((it,i)=>`<tr style="${kioskCurrent&&kioskCurrent.id===it.id?'box-shadow:inset 3px 0 0 var(--ball)':''}">
+     <td>${thumb(it)}</td>
+     <td><span class="tag ${it.type==='youtube'?'bad':it.type==='image'?'cy':it.type==='text'?'warn':'bl'}">${it.type}</span></td>
+     <td><b>${esc(it.title||'(untitled)')}</b>${it.type==='youtube'?`<div class="mono" style="font-size:11px;color:var(--dim)">${esc(it.videoId)}</div>`:''}${it.type==='text'?`<div style="font-size:12px;color:var(--dim)">${esc((it.body||'').slice(0,60))}${(it.body||'').length>60?'…':''}</div>`:''}</td>
+     <td><input class="inp mono" style="width:64px;padding:6px" type="number" min="3" value="${it.secs||10}" onchange="DB.kiosk.items[${i}].secs=+this.value;save()"></td>
+     <td><label class="switch"><input type="checkbox" ${it.on!==false?'checked':''} onchange="DB.kiosk.items[${i}].on=this.checked;save()"><i></i></label></td>
+     <td style="white-space:nowrap"><button class="btn btn-g btn-sm" onclick="kioskMove(${i},-1)">↑</button><button class="btn btn-g btn-sm" onclick="kioskMove(${i},1)">↓</button></td>
+     <td><button class="btn btn-danger btn-sm" onclick="DB.kiosk.items.splice(${i},1);save();vKiosk()">✕</button></td></tr>`).join('')}</table></div>`
+   :'<div class="empty"><b>Empty playlist</b>Add YouTube ads, pictures, announcements, or a live-score slide above. The kiosk loops through enabled items and can play on any TV — wired via the kiosk window, or Wi-Fi via Smart TV cast.</div>'}
+  </div>
+  <div class="card" style="margin-top:14px"><h3>How it plays on TV</h3>
+   <div style="font-size:13px;color:var(--mut);line-height:1.8">
+   <b style="color:var(--ink)">Wired / HDMI:</b> 📺 Kiosk window opens the player — drag it to the TV screen and press F11.<br>
+   <b style="color:var(--ink)">Wi-Fi Smart TV:</b> 📡 Smart TV uses the same-network cast picker (Chromecast / Google TV / Android TV); the TV plays the rotation live. Any smart-TV browser also works: open the club app URL with <span class="mono" style="color:var(--cyan)">?receiver=1</span> then press 📡 here.<br>
+   The 🏓 live-scores slide shows the current match in real time (updates every point) or a branded “next on court” board when no match is live. YouTube slides autoplay muted and loop.</div></div>`;
+}
+function kioskMove(i,d){const a=DB.kiosk.items,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();vKiosk()}
+function kioskAddYT(){
+  openModal(`<h2>▶ Add YouTube slide</h2>
+   <div class="field"><label>Title (optional overlay)</label><input id="kT" class="inp" placeholder="Summer Membership Promo"></div>
+   <div class="field"><label>YouTube URL</label><input id="kU" class="inp mono" placeholder="https://youtu.be/… or watch?v=…"></div>
+   <div class="field"><label>Seconds on screen</label><input id="kS" class="inp mono" type="number" value="30" min="3"></div>
+   <button class="btn btn-p" onclick="kioskSaveYT()">Add to playlist</button>`);
+}
+function kioskSaveYT(){
+  const id=ytId($('#kU').value);
+  if(!id){toast('Could not read a YouTube video ID from that URL','bad');return}
+  DB.kiosk.items.push({id:uid('K'),type:'youtube',title:$('#kT').value,videoId:id,secs:+$('#kS').value||30,on:true});
+  save();closeModal();toast('YouTube slide added','ok');vKiosk();
+}
+function kioskAddImg(){
+  const i=document.createElement('input');i.type='file';i.accept='image/*';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      DB.kiosk.items.push({id:uid('K'),type:'image',title:'',img:c.toDataURL('image/jpeg',.82),secs:8,on:true});
+      save();
+      if(localStorage.getItem(LS_KEY).length>3500000)toast('Storage is getting full — keep kiosk images few or smaller','warn');
+      toast('Picture added — set a title in the list if needed','ok');vKiosk();};
+      img.src=r.result};r.readAsDataURL(f)};i.click();
+}
+function kioskAddText(){
+  openModal(`<h2>📢 Add announcement</h2>
+   <div class="field"><label>Headline</label><input id="kT" class="inp" placeholder="Saturday Ladder League — sign up now!"></div>
+   <div class="field"><label>Body</label><textarea id="kB" class="inp" rows="3" placeholder="Registration at the front desk. ₱200 per player, includes balls and snacks."></textarea></div>
+   <div class="field"><label>Seconds on screen</label><input id="kS" class="inp mono" type="number" value="10" min="3"></div>
+   <button class="btn btn-p" onclick="kioskSaveText()">Add to playlist</button>`);
+}
+function kioskSaveText(){
+  DB.kiosk.items.push({id:uid('K'),type:'text',title:$('#kT').value,body:$('#kB').value,secs:+$('#kS').value||10,on:true});
+  save();closeModal();toast('Announcement added','ok');vKiosk();
+}
+function kioskAddScore(){
+  if(DB.kiosk.items.some(i=>i.type==='score')){toast('A live-scores slide is already in the playlist','warn');return}
+  DB.kiosk.items.push({id:uid('K'),type:'score',title:'Live scores',secs:15,on:true});
+  save();toast('Live-scores slide added','ok');vKiosk();
+}
+
+/* ---------------- SMART TV CASTING (same-network, Presentation API) ----------------
+   Works from Chrome / Edge / Android to Chromecast, Google TV, Android TV and
+   Cast-enabled smart displays on the SAME Wi-Fi. The TV loads this same app with
+   ?receiver=1 and gets live JSON pushes. Requires the app to be hosted (GitHub Pages). */
+const IS_RECEIVER=new URLSearchParams(location.search).has('receiver');
+const IS_VIEWER=new URLSearchParams(location.search).has('viewer');
+/* ---- LIVE VIEWER (Android tablets like Spark Pro, iPads, phones, PCs) ----
+   Publisher posts each score update to Apps Script (CacheService relay);
+   viewer devices open ?viewer=1 and poll every 2s. Works on any browser. */
+let tabletCast=false,_lastPub=0,_pubPending=null;
+function publishLive(payload){
+  if(!tabletCast||!CFG.gasUrl)return;
+  const now=Date.now();
+  const send=p=>{_lastPub=Date.now();gasPost({action:'liveSet',channel:'score',data:p,token:CFG.gasToken}).catch(()=>{})};
+  if(now-_lastPub>800){send(payload)}
+  else{clearTimeout(_pubPending);_pubPending=setTimeout(()=>send(payload),850-(now-_lastPub))}
+}
+function viewerLink(){
+  const base=location.protocol==='file:'?'https://<your-user>.github.io/nexpickle/':location.origin+location.pathname;
+  return base+'?viewer=1&g='+encodeURIComponent(CFG.gasUrl)+'&k='+encodeURIComponent(CFG.gasToken);
+}
+function castToTablet(){
+  if(!CFG.gasUrl||!CFG.gasToken){toast('Set the Apps Script URL + token in Settings → Cloud sync first','warn');return}
+  tabletCast=!tabletCast;
+  if(!tabletCast){toast('Tablet/phone live feed stopped');if(liveMatch)renderLive();return}
+  const link=viewerLink();
+  if(liveMatch&&CUR==='score')renderLive();
+  const c=scoreCastContent();if(c)publishLive({kind:'score',top:c.top,stage:c.stage,logo:CFG.clubLogo,foot:castFoot()});
+  openModal(`<h2>📱 Live viewer — tablets & phones</h2>
+   <div style="font-size:13.5px;color:var(--mut);line-height:1.7;margin-bottom:12px">
+    On the <b style="color:var(--ink)">Spark Pro tablet</b> (or any Android tablet, iPad, phone, or PC), open this link in the browser — it becomes a full-screen live scoreboard, updating every point. Add it to the tablet's home screen for kiosk-style use.</div>
+   <div style="text-align:center;margin-bottom:12px">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(link)}" width="220" height="220" style="border-radius:12px;background:#fff;padding:6px" onerror="this.style.display='none'">
+   </div>
+   <div class="field"><label>Viewer link (scan the QR or copy)</label>
+    <input class="inp mono" style="font-size:11px" value="${esc(link)}" onclick="this.select()" readonly></div>
+   ${location.protocol==='file:'?'<div class="tag warn" style="margin-bottom:10px">Use your hosted GitHub Pages URL — a local file path cannot be opened by another device.</div>':''}
+   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script (2-second refresh). The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
+   <button class="btn btn-p" style="margin-top:12px" onclick="closeModal()">Done — feed is live</button>`);
+}
+function initViewer(){
+  initReceiver(); // reuse the full-screen board UI
+  const q=new URLSearchParams(location.search);
+  const g=q.get('g')||CFG.gasUrl,k=q.get('k')||CFG.gasToken;
+  const txt=document.getElementById('rxTxt');
+  if(!g){txt.textContent='VIEWER: MISSING RELAY URL — OPEN THE LINK FROM THE SCORER DEVICE';return}
+  txt.textContent='CONNECTING TO LIVE FEED…';
+  let lastJSON='';
+  async function poll(){
+    try{
+      const r=await fetch(g,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'liveGet',channel:'score',token:k})});
+      const j=await r.json();
+      if(j.ok&&j.data){const s=JSON.stringify(j.data);if(s!==lastJSON){lastJSON=s;rxRenderPublic(j.data)}}
+      else if(j.ok&&!j.data&&!lastJSON)txt.textContent='WAITING FOR A LIVE MATCH…';
+    }catch(e){if(!lastJSON)txt.textContent='RECONNECTING…'}
+    setTimeout(poll,2000);
+  }
+  poll();
+}
+let presConn=null,tvMode=null,tvTid=null,lastTV=null;
+function pushTV(payload){
+  if(payload)lastTV=payload;
+  if(presConn&&presConn.state==='connected'&&lastTV){try{presConn.send(JSON.stringify(lastTV))}catch(e){}}
+}
+async function castToTV(mode,tid){
+  tvMode=mode||'score';tvTid=tid||null;
+  if(!('PresentationRequest'in window)){howToCast();return}
+  if(location.protocol==='file:'){howToCast(true);return}
+  try{
+    const u=new URL(location.href);u.search='?receiver=1';u.hash='';
+    const req=new PresentationRequest([u.toString()]);
+    const conn=await req.start();               // shows the same-network device picker
+    presConn=conn;
+    conn.addEventListener('connect',()=>{toast('Connected to TV — live feed on','ok');pushTV()});
+    conn.addEventListener('close',()=>{if(presConn===conn)presConn=null;toast('TV disconnected')});
+    conn.addEventListener('terminate',()=>{if(presConn===conn)presConn=null});
+    setTimeout(()=>{ // initial content
+      if(tvMode==='bracket'&&tvTid){const t=DB.tournaments.find(x=>x.id===tvTid);if(t)renderBracketCast(t)}
+      else if(tvMode==='kiosk')deliverKioskSlide();
+      else renderCast();
+      pushTV();},900);
+  }catch(e){
+    if(e.name==='NotFoundError')toast('No Cast devices found on this network','warn');
+    else if(e.name==='NotAllowedError')toast('Cast cancelled');
+    else toast('Cast unavailable: '+e.message,'warn');
+    howToCast();
+  }
+}
+function howToCast(fileMode){
+  openModal(`<h2>📡 Cast to a Smart TV</h2>
+   <div style="font-size:14px;line-height:1.8;color:var(--mut)">
+   ${fileMode?'<div class="tag warn" style="margin-bottom:10px">Smart-TV casting needs the hosted app (GitHub Pages URL), not a local file.</div>':''}
+   <b style="color:var(--ink)">Option 1 — One-tap cast (same Wi-Fi)</b><br>
+   Chromecast · Google TV · Android TV · Cast-enabled displays: tap <b>📡 Smart TV</b> and pick your device. The TV opens the live board and updates with every point.<br><br>
+   <b style="color:var(--ink)">Option 2 — Chrome tab cast</b><br>
+   Open the 📺 broadcast window, then Chrome menu ⋮ → <b>Cast…</b> → choose the TV → source: <b>Cast tab</b>.<br><br>
+   <b style="color:var(--ink)">Option 3 — Any smart TV browser</b><br>
+   On the TV's own browser, open your club app URL and add <span class="mono" style="color:var(--cyan)">?receiver=1</span> — then cast from this device with 📡 Smart TV.<br><br>
+   <b style="color:var(--ink)">Option 4 — HDMI / extended display</b><br>
+   Use 📺 Cast window and drag it to the TV screen, press F11.</div>
+   <button class="btn btn-p" style="margin-top:14px" onclick="closeModal()">Got it</button>`);
+}
+/* ---- receiver side (runs on the TV) ---- */
+function initReceiver(){
+  document.title='NEXPICKLE · Live Board';
+  document.body.innerHTML=`<style>
+   body{margin:0;background:#0B1F3A;color:#EAF2FB;font-family:Inter,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+   .top{font-family:'JetBrains Mono',monospace;letter-spacing:.35em;font-size:1.4vw;color:#00C2D1;text-align:center;padding:2.2vh 0 0;display:flex;align-items:center;justify-content:center;gap:1vw}
+   .top img{height:4.2vh;object-fit:contain}
+   .stage{flex:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;padding:0 4vw;position:relative}
+   .stage::before{content:"";position:absolute;inset:3vh 2.5vw;border:2px solid rgba(0,194,209,.22);border-radius:24px}
+   .stage::after{content:"";position:absolute;left:50%;top:3vh;bottom:3vh;width:2px;background:rgba(201,242,75,.25)}
+   .duo{display:flex;justify-content:center;margin-bottom:2vh}
+   .duo img,.duo .init{width:11vw;height:11vw;max-width:170px;max-height:170px;border-radius:50%;object-fit:cover;border:4px solid #00C2D1;background:#122A4A;margin:0 -1vw}
+   .duo .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:4vw;color:#00C2D1;font-weight:700}
+   .nm{font-size:2.6vw;font-weight:600;min-height:3.4vw}
+   .sv{font-family:'JetBrains Mono',monospace;font-size:1.3vw;color:#C9F24B;letter-spacing:.25em;min-height:2vw;margin-top:.6vh}
+   .sc{font-family:'Chakra Petch';font-size:17vw;font-weight:700;line-height:1;color:#C9F24B;text-shadow:0 0 60px rgba(201,242,75,.35)}
+   .gm{display:flex;gap:.8vw;justify-content:center;margin-top:1.5vh}
+   .gm span{width:1.4vw;height:1.4vw;border-radius:50%;border:2px solid #1E3A61}.gm span.w{background:#C9F24B;border-color:#C9F24B}
+   .mid{font-family:'JetBrains Mono',monospace;color:#5C7495;font-size:1.2vw;letter-spacing:.2em;z-index:1}
+   .bot{font-family:'JetBrains Mono',monospace;font-size:1vw;letter-spacing:.3em;color:#5C7495;text-align:center;padding:0 0 2vh}
+   @keyframes pop{0%{transform:scale(.15);opacity:0}55%{transform:scale(1.12);opacity:1}75%{transform:scale(.96)}100%{transform:scale(1)}}
+   @keyframes glow{0%,100%{text-shadow:0 0 30px rgba(201,242,75,.45)}50%{text-shadow:0 0 90px rgba(201,242,75,1),0 0 30px rgba(0,194,209,.6)}}
+   @keyframes bnc{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.4vh)}}
+   @keyframes fall{0%{transform:translateY(-8vh) rotate(0deg)}100%{transform:translateY(110vh) rotate(760deg)}}
+   .winbox{display:flex;flex-direction:column;align-items:center;gap:1.6vh;animation:pop .8s cubic-bezier(.2,1.4,.4,1);z-index:2}
+   .wphotos{display:flex}
+   .wphotos img,.wphotos .init{width:14vw;height:14vw;max-width:230px;max-height:230px;border-radius:50%;object-fit:cover;border:.5vw solid #C9F24B;background:#122A4A;margin:0 -1.2vw;box-shadow:0 0 50px rgba(201,242,75,.45);animation:bnc 1.5s ease-in-out infinite}
+   .wphotos .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:5vw;color:#C9F24B;font-weight:700}
+   .wphotos :nth-child(2){animation-delay:.22s}
+   .wtitle{font-family:'Chakra Petch';font-size:6.5vw;font-weight:700;color:#C9F24B;letter-spacing:.06em;animation:glow 1.6s ease-in-out infinite}
+   .wname{font-size:3.4vw;font-weight:600}
+   .wsub{font-family:'JetBrains Mono',monospace;font-size:1.4vw;color:#00C2D1;letter-spacing:.2em}
+   .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+   .confetti i{position:absolute;top:-8vh;width:.75vw;height:1.7vw;border-radius:.2vw;animation:fall linear infinite}
+   #rxRoot{display:none;flex:1;overflow:auto;padding:2vh 2vw}
+   #rxRoot h1{font-family:'Chakra Petch';margin:0 0 4px;font-size:2.6vw}#rxRoot h1 em{font-style:normal;color:#C9F24B}
+   #rxRoot .sub{font-family:'JetBrains Mono',monospace;color:#00C2D1;letter-spacing:.25em;font-size:1vw;margin-bottom:2.5vh}
+   #rxRoot .sec{font-family:'JetBrains Mono',monospace;color:#5C7495;letter-spacing:.25em;font-size:.95vw;margin:2.2vh 0 1vh}
+   #rxRoot .brk{display:flex;gap:2.2vw}#rxRoot .rnd{display:flex;flex-direction:column;justify-content:space-around;gap:1.6vh;min-width:15vw}
+   #rxRoot .rnd h4{font-family:'JetBrains Mono',monospace;font-size:.85vw;letter-spacing:.2em;color:#5C7495;text-align:center;margin:0}
+   #rxRoot .m{background:#122A4A;border:1px solid #1E3A61;border-radius:10px;overflow:hidden;font-size:1.05vw}
+   #rxRoot .p{display:flex;justify-content:space-between;gap:1vw;padding:.9vh 1vw;align-items:center}
+   #rxRoot .p+.p{border-top:1px solid #1E3A61}#rxRoot .p.w{background:rgba(201,242,75,.12)}#rxRoot .p.w b{color:#C9F24B}
+   #rxRoot .p img{width:1.8vw;height:1.8vw;border-radius:50%;object-fit:cover;border:2px solid #00C2D1;margin-right:.5vw}
+   #rxRoot .sc{font-family:'JetBrains Mono',monospace;color:#8FA3BF;font-size:.9vw;text-shadow:none}
+   #rxRoot .meta{padding:.4vh 1vw;font-family:'JetBrains Mono',monospace;font-size:.75vw;color:#00C2D1;border-bottom:1px solid #1E3A61}
+   .champbox{display:flex;align-items:center;gap:1.6vw;background:rgba(201,242,75,.08);border:1px solid rgba(201,242,75,.4);border-radius:16px;padding:1.6vh 2vw;margin:1.5vh 0;animation:pop .8s;position:relative;z-index:2}
+   .champbox img,.champbox .init{width:5.5vw;height:5.5vw;border-radius:50%;object-fit:cover;border:.3vw solid #C9F24B;background:#122A4A;margin-right:-.8vw;animation:bnc 1.5s infinite}
+   .champbox .init{display:inline-flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-size:2vw;color:#C9F24B;font-weight:700}
+   .champbox .t1{font-family:'Chakra Petch';font-size:2.4vw;font-weight:700;color:#C9F24B;animation:glow 1.6s infinite}
+   .champbox .t2{font-size:1.2vw;color:#8FA3BF}
+   @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  </style>
+  <div class="top" id="rxTop"><img id="rxLogo" style="display:none"><span id="rxTxt">NEXPICKLE · READY TO CAST</span></div>
+  <div class="stage" id="rxStage"><div></div><div style="font-family:'JetBrains Mono',monospace;color:#5C7495;font-size:1.4vw;letter-spacing:.25em">WAITING FOR THE COURT…<br><br>START A MATCH, CAST A BRACKET,<br>OR LAUNCH THE KIOSK FROM YOUR PHONE OR PC</div><div></div></div>
+  <div id="rxRoot"></div>
+  <div id="rxKiosk" style="display:none;position:fixed;inset:0;background:#0B1F3A;overflow:hidden;z-index:3"></div>
+  <div class="bot" id="rxFoot">NEXPICKLE · NEXARCH SYSTEMS ENGINEERING · PRECISION · SCALE · CONTROL</div>`;
+  function rxRender(d){
+    const logo=document.getElementById('rxLogo');
+    const kio=document.getElementById('rxKiosk');
+    if(d.kind==='kiosk'){
+      kio.style.display='block';kio.innerHTML=d.html;
+      document.getElementById('rxStage').style.display='none';
+      document.getElementById('rxRoot').style.display='none';
+      return;
+    }
+    kio.style.display='none';kio.innerHTML='';
+    if(d.kind==='bracket'){
+      document.getElementById('rxStage').style.display='none';
+      const r=document.getElementById('rxRoot');r.style.display='block';r.innerHTML=d.html;
+      document.getElementById('rxTxt').textContent='LIVE TOURNAMENT BOARD';logo.style.display='none';
+    }else{
+      document.getElementById('rxRoot').style.display='none';
+      document.getElementById('rxStage').style.display='grid';
+      document.getElementById('rxStage').innerHTML=d.stage;
+      document.getElementById('rxTxt').textContent=d.top;
+      if(d.logo){logo.src=d.logo;logo.style.display=''}else logo.style.display='none';
+      if(d.foot)document.getElementById('rxFoot').textContent=d.foot.replace(/<[^>]+>/g,'');
+    }
+  }
+  const hook=c=>{c.addEventListener('message',e=>{try{rxRender(JSON.parse(e.data))}catch(x){}})};
+  window.rxRenderPublic=rxRender;
+  if(navigator.presentation&&navigator.presentation.receiver){
+    navigator.presentation.receiver.connectionList.then(list=>{
+      list.connections.forEach(hook);
+      list.addEventListener('connectionavailable',e=>hook(e.connection));});
+  }
+}
+
 /* ---------------- PWA install prompt ---------------- */
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;
@@ -1664,7 +2151,9 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPro
 
 /* ---------------- BOOT ---------------- */
 (async function boot(){
-  load();await seed();fillLogin();updateSyncPill();
+  if(IS_VIEWER){load();initViewer();return}
+  if(IS_RECEIVER){initReceiver();return}
+  load();await seed();fillLogin();updateSyncPill();applyBranding();
   const sess=sessionStorage.getItem('nexpickle_session');
   if(sess){const u=DB.users.find(x=>x.id===sess);if(u){USER=u;$('#login').style.display='none';$('#app').classList.add('on');
     $('#whoPill').textContent=u.name+' · '+u.role.toUpperCase();buildNav();go('dash');if(CFG.gasUrl)scheduleAutoSync();}}
