@@ -358,19 +358,25 @@ const ICONS={
  tv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>',
  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'};
 const VIEWS=[
- {id:'dash',t:'Dashboard',i:'dash',sec:'Operations',roles:['admin','staff','member']},
- {id:'book',t:'Bookings',i:'book',roles:['admin','staff','member']},
- {id:'plan',t:'Planner',i:'plan',roles:['admin','staff']},
- {id:'score',t:'Live Scoring',i:'score',roles:['admin','staff','member']},
- {id:'tour',t:'Tournaments',i:'trophy',roles:['admin','staff']},
- {id:'players',t:'Players',i:'users',sec:'Management',roles:['admin','staff']},
- {id:'pay',t:'Payments',i:'pay',roles:['admin','staff']},
- {id:'bi',t:'Intelligence (BI)',i:'bi',roles:['admin']},
- {id:'ai',t:'CYRA AI',i:'ai',roles:['admin','staff']},
- {id:'kiosk',t:'Kiosk / Ads',i:'tv',sec:'System',roles:['admin','staff']},
- {id:'notif',t:'Notifications',i:'bell',roles:['admin','staff']},
+ {id:'dash',t:'Dashboard',i:'dash',sec:'Operations',roles:['admin','management','staff','member','public']},
+ {id:'book',t:'Bookings',i:'book',roles:['admin','management','staff','member']},
+ {id:'plan',t:'Planner',i:'plan',roles:['admin','management','staff']},
+ {id:'score',t:'Live Scoring',i:'score',roles:['admin','management','staff','member','public']},
+ {id:'tour',t:'Tournaments',i:'trophy',roles:['admin','management','staff']},
+ {id:'players',t:'Players',i:'users',sec:'Management',roles:['admin','management','staff']},
+ {id:'pay',t:'Payments',i:'pay',roles:['admin','management','staff']},
+ {id:'bi',t:'Intelligence (BI)',i:'bi',roles:['admin','management']},
+ {id:'ai',t:'CYRA AI',i:'ai',roles:['admin','management','staff']},
+ {id:'kiosk',t:'Kiosk / Ads',i:'tv',sec:'System',roles:['admin','management','staff']},
+ {id:'notif',t:'Notifications',i:'bell',roles:['admin','management','staff']},
  {id:'conn',t:'Connectors',i:'plug',roles:['admin']},
  {id:'set',t:'Settings',i:'gear',roles:['admin']}];
+const ROLES={
+ admin:'Full control — all modules including Settings & Connectors',
+ management:'All operations + Business Intelligence & CYRA (no system settings)',
+ staff:'Front-desk operations — bookings, scoring, tournaments, players, payments, kiosk',
+ member:'Member kiosk — dashboard, booking, live scoring',
+ public:'Public / guest view — dashboard and live scores only'};
 let CUR='dash';
 function buildNav(){
   const vs=VIEWS.filter(v=>v.roles.includes(USER.role));
@@ -1731,13 +1737,48 @@ function vSet(){
     <div style="display:flex;gap:10px;flex-wrap:wrap">
      ${['bookings','players','payments','matches','notifLog'].map(k=>`<button class="btn btn-g btn-sm" onclick="exportCSV('${k}')">⬇ ${k}.csv</button>`).join('')}</div>
    </div>
-   <div class="card"><h3>Security</h3>
-    ${DB.users.map(u=>`<div class="setrow"><div><div class="t">${esc(u.name)}</div><div class="s">role: ${u.role}</div></div>
-     <button class="btn btn-g btn-sm" onclick="changePin('${u.id}')">Change PIN</button></div>`).join('')}
-    <div class="hint">PINs are stored as SHA-256 hashes on this device and in your private Sheet. Roles gate module access: <b>admin</b> full · <b>staff</b> operations · <b>member</b> kiosk (dashboard, booking, scoring).</div>
+   <div class="card"><h3>Security — operators & roles <span style="flex:1"></span><button class="btn btn-ball btn-sm" onclick="userForm()">＋ Add operator</button></h3>
+    ${DB.users.map(u=>`<div class="setrow"><div><div class="t">${esc(u.name)} <span class="tag ${u.role==='admin'?'bl':u.role==='management'?'cy':u.role==='staff'?'ok':'warn'}" style="margin-left:6px">${u.role}</span></div>
+     <div class="s">${esc(ROLES[u.role]||'')}</div></div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn btn-g btn-sm" onclick="userForm('${u.id}')">Edit</button>
+      <button class="btn btn-g btn-sm" onclick="changePin('${u.id}')">PIN</button>
+      <button class="btn btn-danger btn-sm" onclick="delUser('${u.id}')">✕</button></div></div>`).join('')}
+    <div class="hint">Five access levels: <b>admin</b> (everything), <b>management</b> (operations + BI/CYRA), <b>staff</b> (front desk), <b>member</b> (dashboard · booking · scoring), <b>public</b> (dashboard · live scores, view-only). PINs are SHA-256 hashed. At least one admin must always remain.</div>
    </div>
   </div>
   <div class="hint" style="text-align:center;margin-top:18px">NEXPICKLE v${VERSION} · NEXARCH Systems Engineering · CYRABELL Platform · Iligan City<br>Precision. Scale. Control.</div>`;
+}
+function userForm(id){
+  const u=id?DB.users.find(x=>x.id===id):{name:'',role:'staff'};
+  openModal(`<h2>${id?'Edit operator':'Add operator'}</h2>
+   <div class="field"><label>Name</label><input id="uN" class="inp" value="${esc(u.name)}" placeholder="Front Desk 2 / Coach Ana / Guest Kiosk"></div>
+   <div class="field"><label>Role</label><select id="uR" class="inp" onchange="$('#roleDesc').textContent=ROLES[this.value]">
+    ${Object.keys(ROLES).map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`).join('')}</select>
+    <div id="roleDesc" style="font-size:12px;color:var(--dim);margin-top:6px">${esc(ROLES[u.role])}</div></div>
+   ${id?'':`<div class="field"><label>PIN (4–8 digits)</label><input id="uP" class="inp mono" type="password" inputmode="numeric" maxlength="8" placeholder="••••"></div>`}
+   <button class="btn btn-p" onclick="saveUser('${id||''}')">${id?'Save changes':'Create operator'}</button>`);
+}
+async function saveUser(id){
+  const name=$('#uN').value.trim(),role=$('#uR').value;
+  if(!name){toast('Name is required','bad');return}
+  if(id){
+    const u=DB.users.find(x=>x.id===id);
+    if(u.role==='admin'&&role!=='admin'&&DB.users.filter(x=>x.role==='admin').length===1){toast('Cannot demote the last admin','bad');return}
+    u.name=name;u.role=role;queue('users',u);
+  }else{
+    const pin=$('#uP').value;
+    if(!/^\d{4,8}$/.test(pin)){toast('PIN must be 4–8 digits','bad');return}
+    const u={id:uid('U'),name,role,pin:await sha(pin)};
+    DB.users.push(u);queue('users',u);
+  }
+  save();fillLogin();closeModal();toast('Operator saved','ok');vSet();
+}
+function delUser(id){
+  const u=DB.users.find(x=>x.id===id);
+  if(u.role==='admin'&&DB.users.filter(x=>x.role==='admin').length===1){toast('Cannot delete the last admin','bad');return}
+  if(USER&&USER.id===id){toast('You cannot delete the account you are signed in with','bad');return}
+  DB.users=DB.users.filter(x=>x.id!==id);save();fillLogin();toast('Operator removed');vSet();
 }
 async function changePin(id){
   const pin=prompt('New PIN (4–8 digits):');
