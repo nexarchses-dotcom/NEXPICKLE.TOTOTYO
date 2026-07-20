@@ -323,20 +323,96 @@ async function seed(){
     {id:'u-admin',name:'Ray Engracia',role:'admin',pin:await sha('1234')},
     {id:'u-desk',name:'Front Desk',role:'staff',pin:await sha('2345')},
     {id:'u-kiosk',name:'Member Kiosk',role:'member',pin:await sha('0000')}];
+  save();
+}
+/* ---------------- DEMO DATA & TOTAL CLEANUP ---------------- */
+function demoCount(){return ['players','bookings','payments','events','matches','tournaments'].reduce((n,k)=>n+DB[k].filter(r=>r.demo).length,0)+DB.kiosk.items.filter(r=>r.demo).length}
+function loadDemoConfirm(){
+  openModal(`<h2>🎮 Load demo data</h2>
+   <div style="font-size:13.5px;color:var(--mut);line-height:1.7">Fills the system with a realistic sample club: 8 players, ~3 weeks of booking history with payments (fuel for CYRA forecasting), today's schedule, upcoming events, match results, a completed tournament with a podium, and a kiosk playlist. Every demo record is tagged so it can be removed with one tap later.<br><br>${CFG.gasUrl?'<span class="tag warn">Note: demo records stay on this device only — they are NOT queued to your Google Sheet. Editing a demo record after loading will sync that edit.</span>':''}</div>
+   <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-ball" onclick="loadDemoData()">Load demo data</button>
+    <button class="btn btn-g" onclick="closeModal()">Cancel</button></div>`);
+}
+function loadDemoData(){
+  if(!role('admin'))return deny();
+  closeModal();
   const names=[['Miguel Santos','0917 555 0101'],['Ana Reyes','0917 555 0102'],['Carlo Dela Cruz','0917 555 0103'],['Bea Lim','0917 555 0104'],['Jomar Villanueva','0917 555 0105'],['Kris Tan','0917 555 0106'],['Paolo Garcia','0917 555 0107'],['Diane Uy','0917 555 0108']];
-  DB.players=names.map((n,i)=>({id:uid('P'),name:n[0],phone:n[1],email:n[0].split(' ')[0].toLowerCase()+'@mail.com',
+  const ps=names.map((n,i)=>({id:uid('P'),demo:true,name:n[0],phone:n[1],email:n[0].split(' ')[0].toLowerCase()+'@mail.com',
     tier:i<3?'Member':'Guest',rating:1000+Math.round(Math.random()*400),dupr:(2.5+Math.random()*2).toFixed(2),
     wins:0,losses:0,noShows:i===4?2:0,joined:today(),channels:{email:true,sms:true,whatsapp:i%2===0,viber:i%3===0,messenger:false},notes:''}));
+  DB.players.push(...ps);
   const d=today();
-  DB.bookings=[
-    bk(d,CFG.courts[0],8,DB.players[0].id,'reserved'),bk(d,CFG.courts[1],8,DB.players[1].id,'reserved'),
-    bk(d,CFG.courts[0],17,DB.players[2].id,'reserved'),bk(d,CFG.courts[2],18,DB.players[3].id,'open'),
-    bk(d,CFG.courts[3],19,DB.players[4].id,'reserved')];
-  // 21 days of synthetic history for CYRA forecasting
+  const mkb=(date,court,hour,pid,type)=>{const b=bk(date,court,hour,pid,type);b.demo=true;return b};
+  DB.bookings.push(
+    mkb(d,CFG.courts[0],8,ps[0].id,'reserved'),mkb(d,CFG.courts[1%CFG.courts.length],8,ps[1].id,'reserved'),
+    mkb(d,CFG.courts[0],17,ps[2].id,'reserved'),mkb(d,CFG.courts[2%CFG.courts.length],18,ps[3].id,'open'),
+    mkb(addDays(d,1),CFG.courts[0],9,ps[5].id,'reserved'),mkb(addDays(d,2),CFG.courts[1%CFG.courts.length],18,ps[6].id,'reserved'));
   for(let i=1;i<=21;i++){const dd=addDays(d,-i);const n=3+Math.round(3*Math.abs(Math.sin(i/2)))+(new Date(dd).getDay()%6===0?3:0);
-    for(let j=0;j<n;j++){const b=bk(dd,CFG.courts[j%CFG.courts.length],7+(j*3)%14,DB.players[j%DB.players.length].id,'reserved');b.status=Math.random()<.08?'no-show':'done';DB.bookings.push(b);
-      DB.payments.push({id:uid('PAY'),date:dd,playerId:b.playerId,amount:CFG.rateReserved,method:['GCash','Cash','BPI'][j%3],ref:'',for:'Court booking',bookingId:b.id});}}
+    for(let j=0;j<n;j++){const b=mkb(dd,CFG.courts[j%CFG.courts.length],7+(j*3)%14,ps[j%ps.length].id,'reserved');b.status=Math.random()<.08?'no-show':'done';DB.bookings.push(b);
+      DB.payments.push({id:uid('PAY'),demo:true,date:dd,playerId:b.playerId,amount:CFG.rateReserved,method:['GCash','Cash','BPI'][j%3],ref:'',for:'Court booking',bookingId:b.id});}}
+  DB.events.push(
+    {id:uid('E'),demo:true,title:'Saturday Ladder League — Week 3',date:addDays(d,(6-new Date(d+'T00:00:00').getDay()+7)%7||7),time:'6:00 PM – 9:00 PM',kind:'league',capacity:16,courts:CFG.courts.slice(0,2),notes:'₱200/player · balls provided',status:'planned'},
+    {id:uid('E'),demo:true,title:'Court resurfacing — '+CFG.courts[CFG.courts.length-1],date:addDays(d,4),time:'7:00 AM – 12:00 NN',kind:'maintenance',capacity:0,courts:[CFG.courts[CFG.courts.length-1]],notes:'Court closed for the morning',status:'planned'});
+  for(let i=0;i<8;i++){const a=ps[i%8],b2=ps[(i+3)%8],aw=Math.random()<.5;
+    DB.matches.push({id:uid('M'),demo:true,date:addDays(d,-(i+1)),format:'singles',a:a.id,b:b2.id,
+      gamesA:aw?2:Math.round(Math.random()),gamesB:aw?Math.round(Math.random()):2,winner:aw?'A':'B',
+      score:aw?'11-'+(4+i%6)+', 11-'+(6+i%4):(4+i%6)+'-11, '+(6+i%4)+'-11',status:'final'});
+    if(aw){a.wins++;b2.losses++}else{b2.wins++;a.losses++}}
+  const t={id:uid('T'),demo:true,name:'Demo Club Championship',date:addDays(d,-3),format:'single-elim',discipline:'singles',
+    entrants:ps.slice(0,8).map(p=>p.id),teams:[],entryFee:200,regPaid:{},rounds:[],status:'draft',
+    rules:{pts:11,bestOf:3,rally:false},thirdPlace:true};
+  normTour(t);genSingleElim(t,t.entrants.slice());t.status='active';t.champNotified=true; // demo: no blast
+  DB.tournaments.push(t);
+  let guard=0;
+  while(t.status!=='done'&&guard++<64){
+    const m=t.rounds.flatMap(r=>r.matches).find(m=>m.a&&m.b&&m.a!=='BYE'&&m.b!=='BYE'&&!m.winner);
+    if(!m)break;
+    m.winner=Math.random()<.55?m.a:m.b;m.score='11-'+(3+Math.floor(Math.random()*6))+', 11-'+(5+Math.floor(Math.random()*5));
+    routeResult(t,m);checkTourDone(t);}
+  ps.slice(0,8).forEach(p=>{t.regPaid[p.id]=true});
+  DB.kiosk.items.push(
+    {id:uid('K'),demo:true,type:'text',title:'Welcome to '+CFG.clubName,body:'Open daily 6AM – 10PM\nBook at the front desk or scan the QR',secs:8,on:true,ord:DB.kiosk.items.length},
+    {id:uid('K'),demo:true,type:'score',title:'Live scores',secs:15,on:true,ord:DB.kiosk.items.length+1});
+  save();resolveBookingClashes();save();
+  toast('Demo data loaded — '+demoCount()+' records (tagged for one-tap removal)','ok');
+  go('dash');
+}
+function removeDemoData(){
+  if(!role('admin'))return deny();
+  ['players','bookings','payments','events','matches','tournaments'].forEach(k=>DB[k]=DB[k].filter(r=>!r.demo));
+  DB.kiosk.items=DB.kiosk.items.filter(r=>!r.demo);
+  save();toast('Demo data removed','ok');if(CUR==='set')vSet();else go('dash');
+}
+function factoryResetModal(){
+  openModal(`<h2>🧹 Total cleanup — factory reset</h2>
+   <div style="font-size:13.5px;color:var(--mut);line-height:1.7;margin-bottom:12px">Erases <b style="color:var(--bad)">all data on this device</b>: players, bookings, events, matches, tournaments, payments, kiosk playlist, notification log, and pending sync changes.</div>
+   <div class="setrow" style="border:none;padding:6px 0"><div><div class="t">Keep club configuration & operators</div><div class="s">Identity, logo, courts, rates, sync credentials, and operator PINs survive. Untick for a complete factory-fresh system (default PINs restored).</div></div>
+    <label class="switch"><input type="checkbox" id="frKeep" checked><i></i></label></div>
+   <div class="setrow" style="border:none;padding:6px 0"><div><div class="t">Also erase all data in Google Sheets</div><div class="s">${CFG.gasUrl?'Clears every data row in the cloud Sheet too (headers kept) — the true total cleanup.':'Unavailable — cloud sync is not configured.'}</div></div>
+    <label class="switch"><input type="checkbox" id="frWipe" ${CFG.gasUrl?'':'disabled'}><i></i></label></div>
+   <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-danger" onclick="factoryReset()">Erase now</button>
+    <button class="btn btn-g" onclick="closeModal()">Cancel</button></div>`);
+}
+async function factoryReset(){
+  if(!role('admin'))return deny();
+  const keep=$('#frKeep').checked,wipe=$('#frWipe').checked;
+  closeModal();
+  if(wipe&&CFG.gasUrl){
+    toast('Erasing Google Sheets data…');
+    try{const r=await gasPost({action:'wipe',token:CFG.gasToken});
+      if(!r.ok){toast('Sheet wipe failed: '+(r.error||'unknown')+' — device not reset','bad');return}
+      toast('Google Sheets data erased','ok');
+    }catch(e){toast('Sheet wipe failed: '+e.message+' — device not reset','bad');return}}
+  const savedCfg=keep?structuredClone(CFG):null,savedUsers=keep?structuredClone(DB.users):null;
+  DB=blankDB();CFG=DB.cfg;
+  if(keep){Object.assign(CFG,savedCfg);DB.users=savedUsers;DB.cfg=CFG;}
+  else await seed();
+  _cfgJson=JSON.stringify(cloudCfgObj());
   save();
+  toast('Total cleanup complete — system is factory fresh','ok');
+  setTimeout(()=>location.reload(),900);
 }
 function bk(date,court,hour,playerId,type){return{id:uid('B'),date,court,hour,durationH:1,playerId,type,status:'confirmed',paid:false,createdAt:new Date().toISOString(),notified:false}}
 
@@ -465,6 +541,7 @@ function vDash(){
   const nConf=bookingConflicts().length;
   $('#main').innerHTML=`
   ${nConf?`<div class="card" style="border-color:var(--bad);margin-bottom:14px;cursor:pointer" onclick="conflictsModal()"><h3 style="margin:0;color:var(--bad)">⚠ ${nConf} booking conflict${nConf>1?'s':''} need${nConf>1?'':'s'} resolution — tap to review</h3></div>`:''}
+  ${!DB.players.length&&!DB.bookings.length&&role('admin')?`<div class="card" style="border-color:var(--cyan);margin-bottom:14px"><h3 style="margin:0">👋 Fresh system</h3><div style="font-size:13px;color:var(--mut);margin-top:8px;line-height:1.7">Start by adding players and courts in Settings — or load a full sample club to explore every feature first.</div><div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-ball btn-sm" onclick="loadDemoConfirm()">🎮 Load demo data</button><button class="btn btn-g btn-sm" onclick="go('set')">⚙ Open Settings</button></div></div>`:''}
   <div class="grid g4">
     <div class="card kpi"><div class="v">${tb.length}</div><div class="l">Bookings today</div><div class="d mono" style="color:var(--cyan)">CYRA forecast tomorrow: ${fc.tomorrow}</div></div>
     <div class="card kpi"><div class="v">${util}%</div><div class="l">Court utilization</div><div class="d ${util>60?'up':'dn'}">${util>60?'▲ healthy load':'▼ capacity available'}</div></div>
@@ -1836,6 +1913,25 @@ function vSet(){
      <button class="btn btn-p" onclick="syncNow()">⇅ Sync now</button>
      <button class="btn btn-g" onclick="exportAll()">⬇ Full backup (JSON)</button>
      <button class="btn btn-g" onclick="importAll()">⬆ Restore backup</button></div>
+   <div class="card" style="margin-top:14px"><h3>Backup & restore</h3>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px"><b style="color:var(--ink)">☁ Google Sheets</b> — push every record (players, bookings, events, matches, tournaments, payments, operators, kiosk, configuration) into your private Sheet, or rebuild this device entirely from it.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+     <button class="btn btn-ball" onclick="backupToSheets()">☁ Backup all to Google Sheets</button>
+     <button class="btn btn-danger" onclick="restoreFromSheetsConfirm()">☁ Restore from Google Sheets</button></div>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px"><b style="color:var(--ink)">📗 Local Excel file</b> — a real .xlsx workbook: human-readable sheets (Players, Bookings, Matches, Payments…) for viewing in Excel, plus a lossless <span class="mono">_full</span> sheet that restores the complete system byte-perfect — even if the file was opened and re-saved in Excel. Works fully offline; keep copies on a USB stick.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+     <button class="btn btn-ball" onclick="exportExcel()">📗 Download Excel backup (.xlsx)</button>
+     <button class="btn btn-g" onclick="restoreFromExcel()">📗 Restore from Excel file</button></div>
+    <div class="hint">Restores overwrite this device (credentials kept) and are followed by an automatic conflict scan. Device bootstrap credentials are never written into backups.</div>
+   </div>
+   <div class="card" style="margin-top:14px"><h3>Demo data & total cleanup</h3>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px"><b style="color:var(--ink)">🎮 Demo data</b> — load a realistic sample club (players, 3 weeks of bookings & payments, events, match results, a completed tournament with podium, kiosk playlist) for training, demos, or trying features safely. Every demo record is tagged and removable in one tap.${demoCount()?` <span class="tag cy">${demoCount()} demo records loaded</span>`:''}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+     <button class="btn btn-ball" onclick="loadDemoConfirm()">🎮 Load demo data</button>
+     ${demoCount()?`<button class="btn btn-g" onclick="removeDemoData()">🧽 Remove demo data (${demoCount()})</button>`:''}</div>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px"><b style="color:var(--ink)">🧹 Total cleanup</b> — factory reset: erase all data on this device, optionally keeping club configuration & operators, and optionally wiping the Google Sheets data too for a complete fresh start (e.g. after demoing, before go-live).</div>
+    <button class="btn btn-danger" onclick="factoryResetModal()">🧹 Total cleanup — factory reset…</button>
+   </div>
     <div class="hint">Outbox: <span class="mono">${DB.outbox.length}</span> pending changes · Last sync: <span class="mono">${DB.meta.lastSync?new Date(DB.meta.lastSync).toLocaleString():'never'}</span><br>🔒 <b>All settings are stored centrally in your Google Sheet</b>: club configuration ('config' tab), operator accounts & roles ('users' tab), and the kiosk playlist ('kiosk' tab, images chunked automatically). Every change queues instantly, all devices receive the latest on sync, and a wiped device restores everything from the Sheet. Only the Apps Script URL, token, and auto-sync interval stay device-local (bootstrap credentials).</div>
    </div>
    <div class="card"><h3>Local mode / Excel</h3>
@@ -1909,6 +2005,199 @@ async function changePin(id){
 }
 
 /* ---------------- EXPORT / IMPORT (Excel & backup) ---------------- */
+/* ======== BACKUP & RESTORE — Google Sheets (cloud) + Excel (.xlsx, zero-dep) ======== */
+const BK_TABLES=['users','players','bookings','events','matches','tournaments','payments'];
+async function backupToSheets(){
+  if(!can('data.export'))return deny();
+  if(!CFG.gasUrl||!CFG.gasToken){toast('Set the Apps Script URL + token in Cloud sync first','warn');return}
+  BK_TABLES.forEach(k=>DB[k].forEach(r=>queue(k,r)));
+  DB.kiosk.items.forEach((it,i)=>{it.ord=i;kioskQueueItem(it)});
+  DB.outbox=DB.outbox.filter(o=>o.sheet!=='config');
+  DB.outbox.push({sheet:'config',row:{id:'club-config',_rev:CFG._rev=Date.now(),cfg:cloudCfgObj()},ts:Date.now()});
+  _cfgJson=JSON.stringify(cloudCfgObj());save();
+  toast('Backing up '+DB.outbox.length+' records to Google Sheets…');
+  await syncNow();
+}
+function restoreFromSheetsConfirm(){
+  openModal(`<h2>☁ Restore from Google Sheets</h2>
+   <div style="font-size:13.5px;color:var(--mut);line-height:1.7">This replaces <b style="color:var(--bad)">everything on this device</b> — players, bookings, events, matches, tournaments, payments, operators, kiosk playlist, and club configuration — with the data currently in your Google Sheet. Device credentials (Apps Script URL, token) are kept. Pending unsynced changes on this device are discarded.</div>
+   <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-danger" onclick="restoreFromSheets()">Restore now — overwrite this device</button>
+    <button class="btn btn-g" onclick="closeModal()">Cancel</button></div>`);
+}
+async function restoreFromSheets(){
+  if(!can('data.export'))return deny();
+  if(!CFG.gasUrl||!CFG.gasToken){toast('Cloud sync is not configured','warn');return}
+  closeModal();toast('Restoring from Google Sheets…');
+  try{
+    const res=await gasPost({action:'pull',token:CFG.gasToken});
+    if(!res.ok){toast('Restore failed: '+(res.error||'unknown'),'bad');return}
+    applyRestore({
+      cfg:(res.pull.config||[]).find(r=>r.id==='club-config'),
+      users:res.pull.users||[],kiosk:(res.pull.kiosk||[]).map(kioskUnpack),
+      players:res.pull.players||[],bookings:res.pull.bookings||[],events:res.pull.events||[],
+      matches:res.pull.matches||[],tournaments:res.pull.tournaments||[],payments:res.pull.payments||[]});
+    toast('Restored from Google Sheets ✓','ok');
+  }catch(e){toast('Restore failed: '+e.message,'bad')}
+}
+function applyRestore(d){
+  const keep={gasUrl:CFG.gasUrl,gasToken:CFG.gasToken,autoSyncMin:CFG.autoSyncMin};
+  BK_TABLES.forEach(k=>{if(d[k])DB[k]=d[k].map(r=>normPulled(k,r))});
+  if(d.kiosk)DB.kiosk.items=d.kiosk.filter(i=>!i.deleted).sort((a,b)=>(+a.ord||0)-(+b.ord||0));
+  if(d.cfg&&d.cfg.cfg){Object.assign(CFG,d.cfg.cfg,keep);CFG._rev=+d.cfg._rev||Date.now()}
+  else if(d.cfgObj){Object.assign(CFG,d.cfgObj,keep);CFG._rev=d.cfgRev||Date.now()}
+  if(d.notifLog)DB.notifLog=d.notifLog;
+  DB.cfg=CFG;_cfgJson=JSON.stringify(cloudCfgObj());
+  DB.outbox=[];save();fillLogin();applyBranding();
+  resolveBookingClashes();save();
+  if(USER)go('dash');
+}
+/* ---- minimal XLSX writer: STORE zip + inline-string worksheets ---- */
+const CRC_T=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC_T[(c^u8[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipStore(files){
+  const enc=new TextEncoder(),chunks=[],central=[];let off=0;
+  files.forEach(f=>{
+    const data=typeof f.data==='string'?enc.encode(f.data):f.data,nm=enc.encode(f.name),crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(12,0x21,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);
+    lh.setUint16(26,nm.length,true);
+    chunks.push(new Uint8Array(lh.buffer),nm,data);
+    central.push({nm,crc,size:data.length,off});
+    off+=30+nm.length+data.length;});
+  const cdStart=off;
+  central.forEach(e=>{
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(14,0x21,true);
+    ch.setUint32(16,e.crc,true);ch.setUint32(20,e.size,true);ch.setUint32(24,e.size,true);
+    ch.setUint16(28,e.nm.length,true);ch.setUint32(42,e.off,true);
+    chunks.push(new Uint8Array(ch.buffer),e.nm);off+=46+e.nm.length;});
+  const eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true);eo.setUint16(8,files.length,true);eo.setUint16(10,files.length,true);
+  eo.setUint32(12,off-cdStart,true);eo.setUint32(16,cdStart,true);
+  chunks.push(new Uint8Array(eo.buffer));
+  return new Blob(chunks,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xmlEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function colL(n){let s='';n++;while(n){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)}return s}
+function sheetXML(rows){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${
+    rows.map((r,ri)=>`<row r="${ri+1}">${r.map((v,ci)=>{
+      if(v===null||v===undefined||v==='')return'';
+      const ref=colL(ci)+(ri+1);
+      if(typeof v==='number'&&isFinite(v))return`<c r="${ref}"><v>${v}</v></c>`;
+      if(typeof v==='boolean')return`<c r="${ref}" t="inlineStr"><is><t>${v?'TRUE':'FALSE'}</t></is></c>`;
+      if(typeof v==='object')v='JSON:'+JSON.stringify(v);
+      return`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+    }).join('')}</row>`).join('')}</sheetData></worksheet>`;
+}
+function tableRows(arr,omit){
+  omit=omit||[];const heads=[];
+  arr.forEach(r=>Object.keys(r).forEach(k=>{if(!omit.includes(k)&&!heads.includes(k))heads.push(k)}));
+  heads.sort((a,b)=>(a==='id'?-1:b==='id'?1:0));
+  return [heads,...arr.map(r=>heads.map(h=>r[h]===undefined?'':r[h]))];
+}
+function exportExcel(){
+  if(!can('data.export'))return deny();
+  const full={v:1,app:'NEXPICKLE',exported:new Date().toISOString(),
+    cfgObj:cloudCfgObj(),cfgRev:CFG._rev||Date.now(),
+    kiosk:DB.kiosk.items,users:DB.users,players:DB.players,bookings:DB.bookings,events:DB.events,
+    matches:DB.matches,tournaments:DB.tournaments,payments:DB.payments,notifLog:DB.notifLog.slice(-200)};
+  const js=JSON.stringify(full),CH=30000,fullRows=[];
+  for(let i=0;i<js.length;i+=CH)fullRows.push([js.slice(i,i+CH)]);
+  const cfgKV=Object.entries(cloudCfgObj()).map(([k,v])=>[k,typeof v==='object'?'JSON:'+JSON.stringify(v).slice(0,30000):v]);
+  const sheets=[
+    ['Players',tableRows(DB.players,['photo'])],
+    ['Bookings',tableRows(DB.bookings)],
+    ['Events',tableRows(DB.events)],
+    ['Matches',tableRows(DB.matches)],
+    ['Tournaments',tableRows(DB.tournaments.map(t=>({id:t.id,name:t.name,date:t.date,format:t.format,discipline:t.discipline,status:t.status,entrants:(t.entrants||[]).length,champion:t.champion?entName(t,t.champion):'',runnerUp:t.runnerUp?entName(t,t.runnerUp):'',third:t.third?entName(t,t.third):''})))],
+    ['Payments',tableRows(DB.payments)],
+    ['Operators',tableRows(DB.users)],
+    ['Kiosk',tableRows(DB.kiosk.items,['img'])],
+    ['Config',[['key','value'],...cfgKV.filter(([k])=>k!=='clubLogo')]],
+    ['_full',fullRows]];
+  const files=[
+    {name:'[Content_Types].xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`},
+    {name:'_rels/.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xmlEsc(s[0])}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}</Relationships>`},
+    ...sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXML(s[1])}))];
+  dl(zipStore(files),`NEXPICKLE_Backup_${today()}.xlsx`);
+  toast('Excel backup downloaded — human-readable sheets + lossless _full restore sheet','ok');
+}
+/* ---- minimal XLSX reader (handles Excel-resaved files: deflate + sharedStrings) ---- */
+function zipEntries(u8){
+  const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
+  let e=u8.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;
+  if(e<0)throw new Error('Not an .xlsx file');
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);
+  const map={},td=new TextDecoder();
+  for(let i=0;i<n;i++){
+    if(dv.getUint32(p,true)!==0x02014b50)break;
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),
+      nl=dv.getUint16(p+28,true),el=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),
+      lo=dv.getUint32(p+42,true),name=td.decode(u8.subarray(p+46,p+46+nl));
+    const lnl=dv.getUint16(lo+26,true),lel=dv.getUint16(lo+28,true);
+    map[name]={method,csize,off:lo+30+lnl+lel};
+    p+=46+nl+el+cl;}
+  return map;
+}
+function xmlUnesc(s){return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#(\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&')}
+async function readXlsxFull(file){
+  const u8=new Uint8Array(await file.arrayBuffer());
+  const entries=zipEntries(u8),td=new TextDecoder();
+  async function get(name){const e=entries[name];if(!e)return null;
+    const data=u8.subarray(e.off,e.off+e.csize);
+    if(e.method===0)return td.decode(data);
+    const out=await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    return td.decode(out);}
+  const wb=await get('xl/workbook.xml');if(!wb)throw new Error('Missing workbook');
+  const sheetsMeta=[...wb.matchAll(/<sheet\b[^>]*>/g)].map(m=>({
+    name:(m[0].match(/name="([^"]*)"/)||[])[1],
+    rid:(m[0].match(/r:id="([^"]+)"/)||[])[1]})).filter(x=>x.name&&x.rid);
+  const relsX=await get('xl/_rels/workbook.xml.rels');
+  const rmap={};[...relsX.matchAll(/<Relationship\b[^>]*>/g)].forEach(m=>{
+    const id=(m[0].match(/Id="([^"]+)"/)||[])[1],tg=(m[0].match(/Target="([^"]+)"/)||[])[1];
+    if(id&&tg)rmap[id]=tg;});
+  const meta=sheetsMeta.find(x=>x.name==='_full');
+  if(!meta)throw new Error('No _full sheet — pick a workbook exported by NEXPICKLE');
+  let t=rmap[meta.rid];if(!t)throw new Error('Worksheet link missing');
+  t=t.startsWith('/')?t.slice(1):('xl/'+t).replace('xl/xl/','xl/');
+  const xml=await get(t);if(!xml)throw new Error('Worksheet missing');
+  const ssXml=await get('xl/sharedStrings.xml');
+  const shared=ssXml?[...ssXml.matchAll(/<si(?:\s[^>]*)?>([\s\S]*?)<\/si>/g)].map(si=>[...si[1].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(m=>xmlUnesc(m[1])).join('')):[];
+  const parts=[];
+  [...xml.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)].forEach(c=>{
+    const ty=(c[1].match(/t="([^"]+)"/)||[])[1],inner=c[2];
+    if(ty==='inlineStr'){const mt=inner.match(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/);if(mt)parts.push(xmlUnesc(mt[1]));return}
+    const mv=inner.match(/<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/);if(!mv)return;
+    parts.push(ty==='s'?(shared[+mv[1]]??''):xmlUnesc(mv[1]));});
+  return parts.join('');
+}
+function restoreFromExcel(){
+  if(!can('data.export'))return deny();
+  const i=document.createElement('input');i.type='file';i.accept='.xlsx';
+  i.onchange=()=>{const f=i.files[0];if(f)restoreFromExcelConfirm(f)};i.click();
+}
+function restoreFromExcelConfirm(f){
+  openModal(`<h2>📗 Restore from Excel backup</h2>
+   <div style="font-size:13.5px;color:var(--mut);line-height:1.7">Restore <span class="mono" style="color:var(--cyan)">${esc(f.name)}</span>?<br>This replaces <b style="color:var(--bad)">everything on this device</b> with the workbook contents (using its lossless <span class="mono">_full</span> sheet). Device credentials are kept.</div>
+   <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-danger" id="xlsxGo">Restore now — overwrite this device</button>
+    <button class="btn btn-g" onclick="closeModal()">Cancel</button></div>`);
+  $('#xlsxGo').onclick=async()=>{
+    closeModal();toast('Reading workbook…');
+    try{
+      const js=await readXlsxFull(f);
+      const d=JSON.parse(js);
+      if(d.app!=='NEXPICKLE')throw new Error('Not a NEXPICKLE backup');
+      applyRestore(d);
+      toast('Restored from Excel backup ✓ ('+(d.exported||'').slice(0,10)+')','ok');
+    }catch(e){toast('Restore failed: '+e.message,'bad')}
+  };
+}
 function exportCSV(key){if(!can('data.export'))return deny();
   const rows=DB[key]||[];if(!rows.length){toast('Nothing to export','warn');return}
   const cols=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(c=>!['log','pin','photo'].includes(c));
