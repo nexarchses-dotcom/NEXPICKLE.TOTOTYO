@@ -148,6 +148,8 @@ canvas.chart{width:100%;height:220px;display:block}
 .slot.booked{background:rgba(0,194,209,.16);border-color:var(--cyan-dim);color:var(--cyan)}
 .slot.blocked{background:rgba(255,93,93,.12);border-color:rgba(255,93,93,.4);color:var(--bad);cursor:not-allowed}
 .slot.mine{background:rgba(201,242,75,.16);border-color:var(--ball);color:var(--ball)}
+.slot.conflict{background:rgba(255,93,93,.2);border-color:var(--bad);color:var(--bad);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
 .slot-head{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;text-align:center;padding:4px 0}
 .grid-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .grid-scroll .slot-grid{min-width:520px}
@@ -296,7 +298,21 @@ function load(){try{DB=JSON.parse(localStorage.getItem(LS_KEY))||blankDB()}catch
   CFG=Object.assign(structuredClone(DEFAULT_CFG),DB.cfg||{});
   CFG.notif=Object.assign(structuredClone(DEFAULT_CFG.notif),CFG.notif||{});
   DB.cfg=CFG;}
-function save(){DB.cfg=CFG;localStorage.setItem(LS_KEY,JSON.stringify(DB));}
+function save(){DB.cfg=CFG;cfgAutoQueue();localStorage.setItem(LS_KEY,JSON.stringify(DB));}
+/* club configuration lives centrally in the Google Sheet ('config' tab) —
+   any change is queued automatically; devices only cache it. Bootstrap
+   credentials (gasUrl, gasToken, autoSyncMin) stay device-local. */
+let _cfgJson=null;
+function cloudCfgObj(){const c=structuredClone(CFG);delete c.gasUrl;delete c.gasToken;delete c.autoSyncMin;delete c._rev;return c}
+function cfgAutoQueue(){
+  const j=JSON.stringify(cloudCfgObj());
+  if(_cfgJson===null){_cfgJson=j;return}       // baseline on first save after load
+  if(j===_cfgJson)return;
+  _cfgJson=j;CFG._rev=Date.now();
+  DB.outbox=DB.outbox.filter(o=>o.sheet!=='config');   // keep only latest config revision
+  DB.outbox.push({sheet:'config',row:{id:'club-config',_rev:CFG._rev,cfg:cloudCfgObj()},ts:Date.now()});
+  if(typeof updateSyncPill==='function'&&document.getElementById('syncDot'))updateSyncPill();
+}
 function uid(p){return p+'-'+Date.now().toString(36)+'-'+(DB.meta.seq++).toString(36)}
 async function sha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
@@ -446,7 +462,9 @@ function vDash(){
   const rev7=DB.payments.filter(p=>p.date>=addDays(d,-6)).reduce((a,p)=>a+ +p.amount,0);
   const live=DB.matches.filter(m=>m.status==='live').length;
   const fc=cyraForecast();
+  const nConf=bookingConflicts().length;
   $('#main').innerHTML=`
+  ${nConf?`<div class="card" style="border-color:var(--bad);margin-bottom:14px;cursor:pointer" onclick="conflictsModal()"><h3 style="margin:0;color:var(--bad)">⚠ ${nConf} booking conflict${nConf>1?'s':''} need${nConf>1?'':'s'} resolution — tap to review</h3></div>`:''}
   <div class="grid g4">
     <div class="card kpi"><div class="v">${tb.length}</div><div class="l">Bookings today</div><div class="d mono" style="color:var(--cyan)">CYRA forecast tomorrow: ${fc.tomorrow}</div></div>
     <div class="card kpi"><div class="v">${util}%</div><div class="l">Court utilization</div><div class="d ${util>60?'up':'dn'}">${util>60?'▲ healthy load':'▼ capacity available'}</div></div>
@@ -487,9 +505,11 @@ function bookToolbar(){
 }
 function vBookDay(){
   const tb=DB.bookings.filter(b=>b.date===bookDate&&b.status!=='cancelled');
+  const nConf=bookingConflicts().length;
   $('#main').innerHTML=`
   <div class="toolbar">
     ${bookToolbar()}
+    ${nConf?`<span class="tag bad" style="cursor:pointer" onclick="conflictsModal()">⚠ ${nConf} conflict${nConf>1?'s':''} — review</span>`:''}
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,-1);vBook()">‹</button>
     <input class="inp" type="date" value="${bookDate}" onchange="bookDate=this.value;vBook()">
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,1);vBook()">›</button>
@@ -501,10 +521,10 @@ function vBookDay(){
    <div class="grid-scroll"><div class="slot-grid" style="grid-template-columns:64px repeat(${CFG.courts.length},1fr)">
     <div></div>${CFG.courts.map(c=>`<div class="slot-head">${esc(c)}</div>`).join('')}
     ${range(CFG.openHour,CFG.closeHour).map(h=>`<div class="slot-head" style="align-self:center">${hh(h)}</div>`+
-      CFG.courts.map(c=>{const b=tb.find(x=>x.court===c&&x.hour===h);
+      CFG.courts.map(c=>{const b=tb.find(x=>x.court===c&&x.hour===h&&x.status==='conflict')||tb.find(x=>x.court===c&&x.hour===h);
         if(!b)return `<div class="slot" onclick="bookingForm('${c}',${h})">＋</div>`;
         const nm=player(b.playerId)?.name||'—';
-        return `<div class="slot ${b.status==='done'?'mine':'booked'}" onclick="bookingCard('${b.id}')" title="${esc(nm)}">${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
+        return `<div class="slot ${b.status==='conflict'?'conflict':b.status==='done'?'mine':'booked'}" onclick="bookingCard('${b.id}')" title="${esc(nm)}${b.status==='conflict'?' — CONFLICT':''}">${b.status==='conflict'?'⚠ ':''}${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
    </div></div>
   </div>`;
 }
@@ -583,12 +603,66 @@ function bookingCard(id){
    <table><tr><td>Date</td><td class="mono">${b.date}</td></tr><tr><td>Player</td><td>${esc(p?.name||'—')}</td></tr>
    <tr><td>Type</td><td><span class="tag cy">${b.type}</span></td></tr><tr><td>Status</td><td><span class="tag ${b.status==='confirmed'?'ok':'warn'}">${b.status}</span></td>
    </tr><tr><td>Paid</td><td>${b.paid?'<span class="tag ok">yes</span>':'<span class="tag warn">unpaid</span>'}</td></tr></table>
+   ${b.status==='conflict'?`<div style="background:rgba(255,93,93,.1);border:1px solid rgba(255,93,93,.4);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:var(--bad)">⚠ <b>Booking conflict</b> — another booking holds this slot (earliest kept). Resolve below.</div>
+   <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+    ${can('booking.manage')?`<button class="btn btn-ball btn-sm" onclick="resolveKeep('${b.id}')">Keep this (override)</button>
+    <button class="btn btn-g btn-sm" onclick="resolveRebook('${b.id}')">Rebook next free slot</button>
+    <button class="btn btn-danger btn-sm" onclick="resolveCancel('${b.id}')">Cancel & notify</button>`:'<span style="color:var(--dim);font-size:12px">Staff will resolve this conflict.</span>'}
+   </div>`:''}
    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
     ${!b.paid&&can('payment.collect')?`<button class="btn btn-ball btn-sm" onclick="payBooking('${b.id}')">Collect payment</button>`:''}
     ${can('booking.checkin')?`<button class="btn btn-g btn-sm" onclick="checkIn('${b.id}');closeModal()">Check-in</button>
     <button class="btn btn-g btn-sm" onclick="markNoShow('${b.id}')">No-show</button>`:''}
     ${can('booking.manage')||can('booking.cancel.own')?`<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">Cancel booking</button>`:''}
    </div>`);
+}
+/* ---- conflict resolution actions ---- */
+function resolveKeep(id){if(!can('booking.manage'))return deny();
+  const b=DB.bookings.find(x=>x.id===id);
+  const rival=DB.bookings.find(x=>x.id!==id&&x.date===b.date&&x.court===b.court&&x.hour===b.hour&&['confirmed','done'].includes(x.status));
+  b.status='confirmed';queue('bookings',b);
+  if(rival){rival.status='conflict';queue('bookings',rival);toast('Kept this booking — the other is now flagged for resolution','warn')}
+  else toast('Booking restored to confirmed','ok');
+  save();closeModal();vBook();
+}
+function resolveRebook(id){if(!can('booking.manage'))return deny();
+  const b=DB.bookings.find(x=>x.id===id);
+  // find next free slot same day (then following days) on any court
+  let d=b.date,tries=0;
+  while(tries<7*24){
+    for(const c of CFG.courts)for(const h of range(CFG.openHour,CFG.closeHour)){
+      if(d===b.date&&h<=b.hour&&c===b.court)continue;
+      if(!DB.bookings.some(x=>x.date===d&&x.court===c&&x.hour===h&&['confirmed','done','conflict'].includes(x.status))){
+        b.court=c;b.hour=h;b.date=d;b.status='confirmed';queue('bookings',b);save();closeModal();
+        const p=player(b.playerId);
+        notify(p,'Booking moved',`Hi ${p?.name}, due to a scheduling clash we moved your booking to ${c}, ${d} ${hh(h)}. Sorry for the inconvenience — see you on court! — ${CFG.clubName}`);
+        toast(`Rebooked → ${c} · ${d} · ${hh(h)} (player notified)`,'ok');vBook();return;}}
+    d=addDays(d,1);tries+=24;}
+  toast('No free slot found in the next 7 days','bad');
+}
+function resolveCancel(id){if(!can('booking.manage'))return deny();
+  const b=DB.bookings.find(x=>x.id===id);b.status='cancelled';queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);
+  notify(p,'Booking conflict — cancelled',`Hi ${p?.name}, your ${b.date} ${hh(b.hour)} booking clashed with an earlier reservation and was cancelled. Reply to rebook — first coffee is on us. — ${CFG.clubName}`);
+  toast('Cancelled & player notified','ok');vBook();
+}
+function conflictsModal(){
+  const bc=bookingConflicts();
+  const sc=(DB.meta.conflicts||[]).slice().reverse();
+  openModal(`<h2>⚠ Conflict management</h2>
+   <h3 style="font-size:12px;letter-spacing:.1em;color:var(--mut);margin-bottom:8px">DOUBLE-BOOKINGS (${bc.length})</h3>
+   ${bc.length?`<table>${bc.map(b=>`<tr><td class="mono">${b.date} ${hh(b.hour)}</td><td>${esc(b.court)}</td><td>${esc(player(b.playerId)?.name||'—')}</td>
+     <td><button class="btn btn-g btn-sm" onclick="closeModal();bookDate='${b.date}';bookView='day';go('book');bookingCard('${b.id}')">Resolve</button></td></tr>`).join('')}</table>`
+   :'<div style="color:var(--dim);font-size:13px;margin-bottom:8px">None — schedule is clean.</div>'}
+   <h3 style="font-size:12px;letter-spacing:.1em;color:var(--mut);margin:14px 0 8px">SYNC CONFLICTS · STALE WRITES REJECTED (${sc.length})</h3>
+   ${sc.length?`<div style="max-height:220px;overflow-y:auto"><table>${sc.map(c=>`<tr><td class="mono" style="font-size:11px">${(c.ts||'').slice(5,16).replace('T',' ')}</td>
+     <td><span class="tag cy">${esc(c.sheet)}</span></td><td class="mono" style="font-size:11px">${esc(String(c.id).slice(0,14))}</td><td style="font-size:12px;color:var(--dim)">by ${esc(c.device||'?')}</td></tr>`).join('')}</table></div>
+    <div class="hint">Rejected attempts (and the versions that were kept) are preserved in the <span class="mono">_conflicts</span> tab of your Google Sheet for audit — redo the edit from the current data if it still applies.</div>
+    <button class="btn btn-g btn-sm" style="margin-top:8px" onclick="DB.meta.conflicts=[];save();closeModal();toast('Conflict log cleared')">Clear log</button>`
+   :'<div style="color:var(--dim);font-size:13px">None recorded on this device.</div>'}
+   <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn btn-p" onclick="resolveBookingClashes();save();closeModal();vBook()">🔍 Run conflict scan now</button>
+    <button class="btn btn-g" onclick="closeModal()">Close</button></div>`);
 }
 function markNoShow(id){if(!can('booking.checkin'))return deny();const b=DB.bookings.find(x=>x.id===id);b.status='no-show';const p=player(b.playerId);if(p)p.noShows=(p.noShows||0)+1;queue('bookings',b);save();closeModal();toast('Marked as no-show','warn');vBook()}
 function cancelBooking(id){if(!(can('booking.manage')||can('booking.cancel.own')))return deny();const b=DB.bookings.find(x=>x.id===id);b.status='cancelled';queue('bookings',b);save();closeModal();
@@ -1762,7 +1836,7 @@ function vSet(){
      <button class="btn btn-p" onclick="syncNow()">⇅ Sync now</button>
      <button class="btn btn-g" onclick="exportAll()">⬇ Full backup (JSON)</button>
      <button class="btn btn-g" onclick="importAll()">⬆ Restore backup</button></div>
-    <div class="hint">Outbox: <span class="mono">${DB.outbox.length}</span> pending changes · Last sync: <span class="mono">${DB.meta.lastSync?new Date(DB.meta.lastSync).toLocaleString():'never'}</span></div>
+    <div class="hint">Outbox: <span class="mono">${DB.outbox.length}</span> pending changes · Last sync: <span class="mono">${DB.meta.lastSync?new Date(DB.meta.lastSync).toLocaleString():'never'}</span><br>🔒 <b>All settings are stored centrally in your Google Sheet</b>: club configuration ('config' tab), operator accounts & roles ('users' tab), and the kiosk playlist ('kiosk' tab, images chunked automatically). Every change queues instantly, all devices receive the latest on sync, and a wiped device restores everything from the Sheet. Only the Apps Script URL, token, and auto-sync interval stay device-local (bootstrap credentials).</div>
    </div>
    <div class="card"><h3>Local mode / Excel</h3>
     <div style="font-size:13px;color:var(--mut);line-height:1.7;margin-bottom:12px">NEXPICKLE runs fully offline on this device (localStorage). For a local Excel workflow, export any register as CSV and open it directly in Excel; re-import via full backup JSON.</div>
@@ -1848,7 +1922,16 @@ function importAll(){const i=document.createElement('input');i.type='file';i.acc
 function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
 
 /* ---------------- SYNC ENGINE (Google Sheets via Apps Script) ---------------- */
-function queue(sheet,row){DB.outbox.push({sheet,row:structuredClone(row),ts:Date.now()});
+function queue(sheet,row){
+  const copy=structuredClone(row);
+  copy._base=row.updatedAt||null;               // version the edit was based on (conflict detection)
+  copy._editedAt=new Date().toISOString();
+  // one outbox entry per record: merge repeat edits, keep the ORIGINAL base
+  const i=DB.outbox.findIndex(o=>o.sheet===sheet&&o.row.id===copy.id);
+  if(i>=0){const prevBase=DB.outbox[i].row._base;
+    DB.outbox[i].row=Object.assign(DB.outbox[i].row,copy,{_base:prevBase});
+    DB.outbox[i].ts=Date.now();save();updateSyncPill();return;}
+  DB.outbox.push({sheet,row:copy,ts:Date.now()});
   if(['bookings','payments','matches','tournaments'].includes(sheet))fireConnectors(sheet.replace(/s$/,''),row);
   updateSyncPill();}
 async function gasPost(payload){
@@ -1860,14 +1943,71 @@ async function syncNow(){
   try{
     const res=await gasPost({action:'sync',token:CFG.gasToken,outbox:DB.outbox,device:USER?.name||'device'});
     if(res.ok){DB.outbox=[];DB.meta.lastSync=new Date().toISOString();
-      if(res.pull){['players','bookings','payments','tournaments','events'].forEach(k=>{if(res.pull[k]?.length)mergePull(k,res.pull[k])});}
-      save();toast('Synced with Google Sheets','ok');}
+      if(res.pull){
+        const cRow=(res.pull.config||[]).find(r=>r.id==='club-config');
+        if(cRow&&cRow.cfg&&(+cRow._rev||0)>(+CFG._rev||0)){
+          const keep={gasUrl:CFG.gasUrl,gasToken:CFG.gasToken,autoSyncMin:CFG.autoSyncMin};
+          Object.assign(CFG,cRow.cfg,keep);CFG._rev=+cRow._rev;
+          _cfgJson=JSON.stringify(cloudCfgObj());DB.cfg=CFG;
+          applyBranding();toast('Club configuration updated from Google Sheets','ok');
+        }
+        ['players','bookings','payments','tournaments','events'].forEach(k=>{if(res.pull[k]?.length)mergePull(k,res.pull[k])});
+        if(res.pull.users?.length){mergePull('users',res.pull.users);fillLogin();}
+        if(res.pull.kiosk?.length){
+          res.pull.kiosk.forEach(raw=>{const it=kioskUnpack(raw);
+            const i=DB.kiosk.items.findIndex(x=>x.id===it.id);
+            if(it.deleted){if(i>=0)DB.kiosk.items.splice(i,1);return}
+            if(i<0)DB.kiosk.items.push(it);
+            else if((it.updatedAt||'')>(DB.kiosk.items[i].updatedAt||''))DB.kiosk.items[i]=Object.assign({},DB.kiosk.items[i],it);});
+          DB.kiosk.items.sort((a,b)=>(+a.ord||0)-(+b.ord||0));
+        }}
+      save();
+      if(res.conflicts&&res.conflicts.length){
+        DB.meta.conflicts=(DB.meta.conflicts||[]).concat(res.conflicts.map(c=>({...c,ts:new Date().toISOString()}))).slice(-50);
+        toast(res.conflicts.length+' stale change(s) rejected — those records were updated elsewhere first. Showing the latest from Google Sheets.','warn');
+      }
+      const clashes=resolveBookingClashes();
+      save();toast('Synced with Google Sheets','ok');
+      if(clashes.length&&CUR==='book')vBook();}
     else throw new Error(res.error||'Sync rejected');
   }catch(e){toast('Sync failed: '+e.message,'bad')}
   updateSyncPill();if(CUR)go(CUR);
 }
+function normPulled(key,r){
+  // Sheets/date coercion guard: '2026-07-20T00:00:00' → '2026-07-20'
+  if(typeof r.date==='string'&&r.date.length>10)r.date=r.date.slice(0,10);
+  if(key==='bookings'){r.hour=+r.hour;r.durationH=+r.durationH||1;
+    r.paid=(r.paid===true||r.paid==='true'||r.paid==='TRUE');}
+  if(key==='players'){r.rating=+r.rating||1000;r.wins=+r.wins||0;r.losses=+r.losses||0;r.noShows=+r.noShows||0;}
+  if(key==='payments')r.amount=+r.amount||0;
+  return r;
+}
+/* ---- DOMAIN CONFLICT MANAGEMENT: double-bookings across devices ----
+   Two offline devices can book the same court/hour; after merge, the
+   earliest-created booking is kept and later ones are flagged 'conflict'
+   for staff resolution (keep / rebook / cancel & notify). */
+function resolveBookingClashes(){
+  const act=DB.bookings.filter(b=>['confirmed','done'].includes(b.status));
+  const map={},clashes=[];
+  act.forEach(b=>{const k=b.date+'|'+b.court+'|'+b.hour;(map[k]=map[k]||[]).push(b)});
+  Object.values(map).filter(a=>a.length>1).forEach(a=>{
+    a.sort((x,y)=>(x.createdAt||'').localeCompare(y.createdAt||''));
+    a.slice(1).forEach(b=>{if(b.status!=='conflict'){b.status='conflict';queue('bookings',b);clashes.push(b)}});
+  });
+  // self-heal: a flagged booking whose slot is no longer contested returns to confirmed
+  DB.bookings.filter(b=>b.status==='conflict').forEach(b=>{
+    const rival=DB.bookings.some(x=>x.id!==b.id&&x.date===b.date&&x.court===b.court&&x.hour===b.hour&&['confirmed','done'].includes(x.status));
+    if(!rival){b.status='confirmed';queue('bookings',b);}
+  });
+  if(clashes.length)toast('⚠ '+clashes.length+' double-booking(s) detected — earliest kept, others flagged','warn');
+  return clashes;
+}
+function bookingConflicts(){return DB.bookings.filter(b=>b.status==='conflict')}
 function mergePull(key,rows){
-  rows.forEach(r=>{const i=DB[key].findIndex(x=>x.id===r.id);if(i<0)DB[key].push(r);else if((r.updatedAt||'')>(DB[key][i].updatedAt||''))DB[key][i]=r;});
+  rows.forEach(raw=>{const r=normPulled(key,raw);
+    const i=DB[key].findIndex(x=>x.id===r.id);
+    if(i<0)DB[key].push(r);
+    else if((r.updatedAt||'')>(DB[key][i].updatedAt||''))DB[key][i]=Object.assign({},DB[key][i],r);});
 }
 function updateSyncPill(){
   const on=!!CFG.gasUrl;
@@ -1880,6 +2020,22 @@ function scheduleAutoSync(){clearInterval(syncTimer);if(CFG.autoSyncMin>0&&CFG.g
    Rotating playlist: YouTube ads, pictures, announcements, live scores.
    Plays in a popup window (wired/HDMI TV) or over Wi-Fi to a Smart TV. */
 let kWin=null,kioskTimer=null,kioskIdx=-1,kioskTargets={popup:false,tv:false},kioskCurrent=null;
+/* kiosk playlist syncs to the 'kiosk' sheet; images are chunked across
+   img_0..img_n columns to stay under the 50,000-character cell limit */
+const KCHUNK=40000;
+function kioskPack(it){const r={...it};
+  if(r.img){for(let i=0;i*KCHUNK<r.img.length;i++)r['img_'+i]=r.img.slice(i*KCHUNK,(i+1)*KCHUNK);delete r.img;}
+  return r}
+function kioskUnpack(raw){const o={...raw};let img='',i=0;
+  while(o['img_'+i]!==undefined){img+=o['img_'+i];delete o['img_'+i];i++}
+  if(img)o.img=img;
+  o.secs=+o.secs||10;o.on=(o.on===true||o.on==='true'||o.on==='TRUE');
+  return o}
+function kioskQueueItem(it){queue('kiosk',kioskPack(it))}
+function kioskReorderSync(){DB.kiosk.items.forEach((it,i)=>{if(it.ord!==i){it.ord=i;queue('kiosk',{id:it.id,ord:i})}});save()}
+function kioskDelete(i){const it=DB.kiosk.items[i];
+  queue('kiosk',{id:it.id,deleted:true});
+  DB.kiosk.items.splice(i,1);kioskReorderSync();vKiosk()}
 function ytId(u){try{const url=new URL(u);
   if(url.hostname.includes('youtu.be'))return url.pathname.slice(1).split('/')[0];
   if(url.pathname.startsWith('/shorts/'))return url.pathname.split('/')[2]||'';
@@ -1985,10 +2141,10 @@ function vKiosk(){
      <td>${thumb(it)}</td>
      <td><span class="tag ${it.type==='youtube'?'bad':it.type==='image'?'cy':it.type==='text'?'warn':'bl'}">${it.type}</span></td>
      <td><b>${esc(it.title||'(untitled)')}</b>${it.type==='youtube'?`<div class="mono" style="font-size:11px;color:var(--dim)">${esc(it.videoId)}</div>`:''}${it.type==='text'?`<div style="font-size:12px;color:var(--dim)">${esc((it.body||'').slice(0,60))}${(it.body||'').length>60?'…':''}</div>`:''}</td>
-     <td><input class="inp mono" style="width:64px;padding:6px" type="number" min="3" value="${it.secs||10}" onchange="DB.kiosk.items[${i}].secs=+this.value;save()"></td>
-     <td><label class="switch"><input type="checkbox" ${it.on!==false?'checked':''} onchange="DB.kiosk.items[${i}].on=this.checked;save()"><i></i></label></td>
+     <td><input class="inp mono" style="width:64px;padding:6px" type="number" min="3" value="${it.secs||10}" onchange="DB.kiosk.items[${i}].secs=+this.value;queue('kiosk',{id:DB.kiosk.items[${i}].id,secs:+this.value});save()"></td>
+     <td><label class="switch"><input type="checkbox" ${it.on!==false?'checked':''} onchange="DB.kiosk.items[${i}].on=this.checked;queue('kiosk',{id:DB.kiosk.items[${i}].id,on:this.checked});save()"><i></i></label></td>
      <td style="white-space:nowrap"><button class="btn btn-g btn-sm" onclick="kioskMove(${i},-1)">↑</button><button class="btn btn-g btn-sm" onclick="kioskMove(${i},1)">↓</button></td>
-     <td><button class="btn btn-danger btn-sm" onclick="DB.kiosk.items.splice(${i},1);save();vKiosk()">✕</button></td></tr>`).join('')}</table></div>`
+     <td><button class="btn btn-danger btn-sm" onclick="kioskDelete(${i})">✕</button></td></tr>`).join('')}</table></div>`
    :'<div class="empty"><b>Empty playlist</b>Add YouTube ads, pictures, announcements, or a live-score slide above. The kiosk loops through enabled items and can play on any TV — wired via the kiosk window, or Wi-Fi via Smart TV cast.</div>'}
   </div>
   <div class="card" style="margin-top:14px"><h3>How it plays on TV</h3>
@@ -1997,7 +2153,7 @@ function vKiosk(){
    <b style="color:var(--ink)">Wi-Fi Smart TV:</b> 📡 Smart TV uses the same-network cast picker (Chromecast / Google TV / Android TV); the TV plays the rotation live. Any smart-TV browser also works: open the club app URL with <span class="mono" style="color:var(--cyan)">?receiver=1</span> then press 📡 here.<br>
    The 🏓 live-scores slide shows the current match in real time (updates every point) or a branded “next on court” board when no match is live. YouTube slides autoplay muted and loop.</div></div>`;
 }
-function kioskMove(i,d){const a=DB.kiosk.items,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save();vKiosk()}
+function kioskMove(i,d){const a=DB.kiosk.items,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];kioskReorderSync();vKiosk()}
 function kioskAddYT(){
   openModal(`<h2>▶ Add YouTube slide</h2>
    <div class="field"><label>Title (optional overlay)</label><input id="kT" class="inp" placeholder="Summer Membership Promo"></div>
@@ -2008,8 +2164,8 @@ function kioskAddYT(){
 function kioskSaveYT(){
   const id=ytId($('#kU').value);
   if(!id){toast('Could not read a YouTube video ID from that URL','bad');return}
-  DB.kiosk.items.push({id:uid('K'),type:'youtube',title:$('#kT').value,videoId:id,secs:+$('#kS').value||30,on:true});
-  save();closeModal();toast('YouTube slide added','ok');vKiosk();
+  const it={id:uid('K'),type:'youtube',title:$('#kT').value,videoId:id,secs:+$('#kS').value||30,on:true,ord:DB.kiosk.items.length};
+  DB.kiosk.items.push(it);kioskQueueItem(it);save();closeModal();toast('YouTube slide added','ok');vKiosk();
 }
 function kioskAddImg(){
   const i=document.createElement('input');i.type='file';i.accept='image/*';
@@ -2018,8 +2174,8 @@ function kioskAddImg(){
       const max=1000,sc=Math.min(1,max/Math.max(img.width,img.height));
       const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
       c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      DB.kiosk.items.push({id:uid('K'),type:'image',title:'',img:c.toDataURL('image/jpeg',.82),secs:8,on:true});
-      save();
+      const it={id:uid('K'),type:'image',title:'',img:c.toDataURL('image/jpeg',.82),secs:8,on:true,ord:DB.kiosk.items.length};
+      DB.kiosk.items.push(it);kioskQueueItem(it);save();
       if(localStorage.getItem(LS_KEY).length>3500000)toast('Storage is getting full — keep kiosk images few or smaller','warn');
       toast('Picture added — set a title in the list if needed','ok');vKiosk();};
       img.src=r.result};r.readAsDataURL(f)};i.click();
@@ -2032,13 +2188,13 @@ function kioskAddText(){
    <button class="btn btn-p" onclick="kioskSaveText()">Add to playlist</button>`);
 }
 function kioskSaveText(){
-  DB.kiosk.items.push({id:uid('K'),type:'text',title:$('#kT').value,body:$('#kB').value,secs:+$('#kS').value||10,on:true});
-  save();closeModal();toast('Announcement added','ok');vKiosk();
+  const it={id:uid('K'),type:'text',title:$('#kT').value,body:$('#kB').value,secs:+$('#kS').value||10,on:true,ord:DB.kiosk.items.length};
+  DB.kiosk.items.push(it);kioskQueueItem(it);save();closeModal();toast('Announcement added','ok');vKiosk();
 }
 function kioskAddScore(){
   if(DB.kiosk.items.some(i=>i.type==='score')){toast('A live-scores slide is already in the playlist','warn');return}
-  DB.kiosk.items.push({id:uid('K'),type:'score',title:'Live scores',secs:15,on:true});
-  save();toast('Live-scores slide added','ok');vKiosk();
+  const it={id:uid('K'),type:'score',title:'Live scores',secs:15,on:true,ord:DB.kiosk.items.length};
+  DB.kiosk.items.push(it);kioskQueueItem(it);save();toast('Live-scores slide added','ok');vKiosk();
 }
 
 /* ---------------- SMART TV CASTING (same-network, Presentation API) ----------------
