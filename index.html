@@ -148,6 +148,7 @@ canvas.chart{width:100%;height:220px;display:block}
 .slot.booked{background:rgba(0,194,209,.16);border-color:var(--cyan-dim);color:var(--cyan)}
 .slot.blocked{background:rgba(255,93,93,.12);border-color:rgba(255,93,93,.4);color:var(--bad);cursor:not-allowed}
 .slot.mine{background:rgba(201,242,75,.16);border-color:var(--ball);color:var(--ball)}
+.slot.pending{background:rgba(255,193,7,.14);border-color:#FFC107;color:#FFC107}
 .slot.conflict{background:rgba(255,93,93,.2);border-color:var(--bad);color:var(--bad);animation:blink 1.2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
 .slot-head{font-family:var(--font-m);font-size:10px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;text-align:center;padding:4px 0}
@@ -460,7 +461,7 @@ const ICONS={
  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>'};
 const VIEWS=[
  {id:'dash',t:'Dashboard',i:'dash',sec:'Operations',roles:['admin','management','staff','member','public']},
- {id:'book',t:'Bookings',i:'book',roles:['admin','management','staff','member']},
+ {id:'book',t:'Bookings',i:'book',roles:['admin','management','staff','member','public']},
  {id:'plan',t:'Planner',i:'plan',roles:['admin','management','staff']},
  {id:'score',t:'Live Scoring',i:'score',roles:['admin','management','staff','member','public']},
  {id:'tour',t:'Tournaments',i:'trophy',roles:['admin','management','staff']},
@@ -484,7 +485,7 @@ const PERMS={
  management:['booking.create','booking.manage','booking.checkin','payment.collect','payment.view','player.manage','match.score','match.cast','tournament.manage','event.manage','notify.send','kiosk.manage','bi.view','ai.action','data.export'],
  staff:['booking.create','booking.manage','booking.checkin','payment.collect','payment.view','player.manage','match.score','match.cast','tournament.manage','event.manage','notify.send','kiosk.manage','ai.action'],
  member:['booking.create','booking.cancel.own','match.score'],
- public:[]};
+ public:['booking.request']};
 function can(p){if(!USER)return false;const s=PERMS[USER.role]||[];return s.includes('*')||s.includes(p)}
 function deny(){toast('Not permitted for role “'+(USER?USER.role:'—')+'” (least-privilege policy)','warn');return false}
 let CUR='dash';
@@ -540,12 +541,14 @@ function vDash(){
   const fc=cyraForecast();
   const nConf=bookingConflicts().length;
   $('#main').innerHTML=`
-  ${nConf?`<div class="card" style="border-color:var(--bad);margin-bottom:14px;cursor:pointer" onclick="conflictsModal()"><h3 style="margin:0;color:var(--bad)">⚠ ${nConf} booking conflict${nConf>1?'s':''} need${nConf>1?'':'s'} resolution — tap to review</h3></div>`:''}
+  ${nConf&&can('booking.manage')?`<div class="card" style="border-color:var(--bad);margin-bottom:14px;cursor:pointer" onclick="conflictsModal()"><h3 style="margin:0;color:var(--bad)">⚠ ${nConf} booking conflict${nConf>1?'s':''} need${nConf>1?'':'s'} resolution — tap to review</h3></div>`:''}
+  ${can('booking.manage')&&pendingBookings().length?`<div class="card" style="border-color:#FFC107;margin-bottom:14px;cursor:pointer" onclick="pendingModal()"><h3 style="margin:0;color:#FFC107">⏳ ${pendingBookings().length} walk-in booking request${pendingBookings().length>1?'s':''} awaiting confirmation — tap to review</h3></div>`:''}
   ${!DB.players.length&&!DB.bookings.length&&role('admin')?`<div class="card" style="border-color:var(--cyan);margin-bottom:14px"><h3 style="margin:0">👋 Fresh system</h3><div style="font-size:13px;color:var(--mut);margin-top:8px;line-height:1.7">Start by adding players and courts in Settings — or load a full sample club to explore every feature first.</div><div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-ball btn-sm" onclick="loadDemoConfirm()">🎮 Load demo data</button><button class="btn btn-g btn-sm" onclick="go('set')">⚙ Open Settings</button></div></div>`:''}
   <div class="grid g4">
     <div class="card kpi"><div class="v">${tb.length}</div><div class="l">Bookings today</div><div class="d mono" style="color:var(--cyan)">CYRA forecast tomorrow: ${fc.tomorrow}</div></div>
     <div class="card kpi"><div class="v">${util}%</div><div class="l">Court utilization</div><div class="d ${util>60?'up':'dn'}">${util>60?'▲ healthy load':'▼ capacity available'}</div></div>
-    <div class="card kpi"><div class="v">${peso(rev)}</div><div class="l">Revenue today</div><div class="d mono" style="color:var(--mut)">7-day: ${peso(rev7)}</div></div>
+    ${can('payment.view')?`<div class="card kpi"><div class="v">${peso(rev)}</div><div class="l">Revenue today</div><div class="d mono" style="color:var(--mut)">7-day: ${peso(rev7)}</div></div>`
+    :`<div class="card kpi"><div class="v">${slots-tb.length}</div><div class="l">Open slots today</div><div class="d mono" style="color:var(--cyan)">${CFG.courts.length} courts · ${hh(CFG.openHour)}–${hh(CFG.closeHour)}</div></div>`}
     <div class="card kpi"><div class="v">${live}</div><div class="l">Live matches</div><div class="d mono" style="color:var(--ball)">${DB.tournaments.filter(t=>t.status==='active').length} active tournaments</div></div>
   </div>
   <div class="grid g2" style="margin-top:14px">
@@ -571,7 +574,7 @@ function nextUpTable(tb){
   return `<table><tr><th>Time</th><th>Court</th><th>Player</th><th>Type</th><th>Status</th><th></th></tr>${rows.map(b=>`
    <tr><td class="mono">${hh(b.hour)}</td><td>${esc(b.court)}</td><td>${esc(player(b.playerId)?.name||'—')}</td>
    <td><span class="tag cy">${b.type}</span></td><td><span class="tag ${b.status==='confirmed'?'ok':b.status==='no-show'?'bad':'warn'}">${b.status}</span></td>
-   <td><button class="btn btn-g btn-sm" onclick="checkIn('${b.id}')">Check-in</button></td></tr>`).join('')}</table>`;}
+   <td>${can('booking.checkin')?`<button class="btn btn-g btn-sm" onclick="checkIn('${b.id}')">Check-in</button>`:''}</td></tr>`).join('')}</table>`;}
 function checkIn(id){if(!can('booking.checkin'))return deny();const b=DB.bookings.find(x=>x.id===id);if(!b)return;b.status='done';queue('bookings',b);save();toast('Checked in — enjoy the game!','ok');go(CUR)}
 
 /* ---------------- BOOKINGS ---------------- */
@@ -586,22 +589,27 @@ function vBookDay(){
   $('#main').innerHTML=`
   <div class="toolbar">
     ${bookToolbar()}
-    ${nConf?`<span class="tag bad" style="cursor:pointer" onclick="conflictsModal()">⚠ ${nConf} conflict${nConf>1?'s':''} — review</span>`:''}
+    ${nConf&&can('booking.manage')?`<span class="tag bad" style="cursor:pointer" onclick="conflictsModal()">⚠ ${nConf} conflict${nConf>1?'s':''} — review</span>`:''}
+    ${can('booking.manage')&&pendingBookings().length?`<span class="tag warn" style="cursor:pointer" onclick="pendingModal()">⏳ ${pendingBookings().length} to confirm</span>`:''}
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,-1);vBook()">‹</button>
     <input class="inp" type="date" value="${bookDate}" onchange="bookDate=this.value;vBook()">
     <button class="btn btn-g btn-sm" onclick="bookDate=addDays(bookDate,1);vBook()">›</button>
     <div class="spacer" style="flex:1"></div>
-    <button class="btn btn-ball" onclick="bookingForm()">＋ New booking</button>
+    ${can('booking.create')?`<button class="btn btn-ball" onclick="bookingForm()">＋ New booking</button>`:''}
   </div>
   <div class="card">
    <h3>Court grid — ${bookDate} <span class="tag cy">${tb.length} booked</span></h3>
+   ${!can('booking.create')&&can('booking.request')?`<div style="font-size:13px;color:var(--mut);margin-bottom:10px;line-height:1.6">👋 <b style="color:var(--ink)">Walk-in booking:</b> tap any <b style="color:var(--ball)">free slot (＋)</b> to request it. Slots already booked cannot be changed. A staff member will confirm your booking shortly.</div>`:''}
    <div class="grid-scroll"><div class="slot-grid" style="grid-template-columns:64px repeat(${CFG.courts.length},1fr)">
     <div></div>${CFG.courts.map(c=>`<div class="slot-head">${esc(c)}</div>`).join('')}
     ${range(CFG.openHour,CFG.closeHour).map(h=>`<div class="slot-head" style="align-self:center">${hh(h)}</div>`+
       CFG.courts.map(c=>{const b=tb.find(x=>x.court===c&&x.hour===h&&x.status==='conflict')||tb.find(x=>x.court===c&&x.hour===h);
-        if(!b)return `<div class="slot" onclick="bookingForm('${c}',${h})">＋</div>`;
+        if(!b){const act=can('booking.create')?`bookingForm('${c}',${h})`:can('booking.request')?`walkinForm('${c}',${h})`:'';
+          return `<div class="slot" ${act?`onclick="${act}"`:''}>＋</div>`;}
         const nm=player(b.playerId)?.name||'—';
-        return `<div class="slot ${b.status==='conflict'?'conflict':b.status==='done'?'mine':'booked'}" onclick="bookingCard('${b.id}')" title="${esc(nm)}${b.status==='conflict'?' — CONFLICT':''}">${b.status==='conflict'?'⚠ ':''}${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
+        const cls=b.status==='conflict'?'conflict':b.status==='pending'?'pending':b.status==='done'?'mine':'booked';
+        const open=can('booking.manage')||can('booking.cancel.own');
+        return `<div class="slot ${cls}" ${open?`onclick="bookingCard('${b.id}')"`:''} title="${esc(nm)}${b.status==='conflict'?' — CONFLICT':b.status==='pending'?' — AWAITING CONFIRMATION':''}">${b.status==='conflict'?'⚠ ':b.status==='pending'?'⏳ ':''}${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
    </div></div>
   </div>`;
 }
@@ -680,6 +688,11 @@ function bookingCard(id){
    <table><tr><td>Date</td><td class="mono">${b.date}</td></tr><tr><td>Player</td><td>${esc(p?.name||'—')}</td></tr>
    <tr><td>Type</td><td><span class="tag cy">${b.type}</span></td></tr><tr><td>Status</td><td><span class="tag ${b.status==='confirmed'?'ok':'warn'}">${b.status}</span></td>
    </tr><tr><td>Paid</td><td>${b.paid?'<span class="tag ok">yes</span>':'<span class="tag warn">unpaid</span>'}</td></tr></table>
+   ${b.status==='pending'?`<div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.4);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:#FFC107">⏳ <b>Walk-in request</b> — not officially booked until confirmed by staff or management.</div>
+   ${can('booking.manage')?`<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+    <button class="btn btn-ball btn-sm" onclick="confirmBooking('${b.id}')">✓ Confirm booking</button>
+    <button class="btn btn-danger btn-sm" onclick="declineBooking('${b.id}')">✕ Decline & notify</button>
+   </div>`:''}`:''}
    ${b.status==='conflict'?`<div style="background:rgba(255,93,93,.1);border:1px solid rgba(255,93,93,.4);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13px;color:var(--bad)">⚠ <b>Booking conflict</b> — another booking holds this slot (earliest kept). Resolve below.</div>
    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
     ${can('booking.manage')?`<button class="btn btn-ball btn-sm" onclick="resolveKeep('${b.id}')">Keep this (override)</button>
@@ -692,6 +705,70 @@ function bookingCard(id){
     <button class="btn btn-g btn-sm" onclick="markNoShow('${b.id}')">No-show</button>`:''}
     ${can('booking.manage')||can('booking.cancel.own')?`<button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">Cancel booking</button>`:''}
    </div>`);
+}
+/* ---- WALK-IN PUBLIC BOOKING REQUESTS (pending → staff confirmation) ---- */
+function pendingBookings(){return DB.bookings.filter(b=>b.status==='pending')}
+function walkinForm(court,hour){
+  if(!can('booking.request')&&!can('booking.create'))return deny();
+  const taken=DB.bookings.some(x=>x.date===bookDate&&x.court===court&&x.hour===hour&&['confirmed','done','conflict','pending'].includes(x.status));
+  if(taken){toast('That slot was just taken — pick another','warn');vBook();return}
+  openModal(`<h2>👋 Walk-in booking request</h2>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <span class="tag cy">📅 ${bookDate}</span><span class="tag cy">🏟 ${esc(court)}</span><span class="tag cy">🕐 ${hh(hour)}</span><span class="tag bl">1 hour</span></div>
+   <div style="font-size:12.5px;color:var(--dim);margin-bottom:12px">Date, court, and time are fixed to the slot you tapped.</div>
+   <div class="field"><label>Your full name *</label><input id="wiName" class="inp" placeholder="Juan Dela Cruz" maxlength="60" autocomplete="off"></div>
+   <div class="field"><label>Mobile number (optional)</label><input id="wiPhone" class="inp mono" inputmode="tel" placeholder="0917 555 0000" maxlength="20"></div>
+   <div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.4);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#FFC107;line-height:1.6;margin-bottom:12px">⏳ Your request goes to the front desk — a staff member will confirm it to make the booking official. Please wait nearby or check back on this screen.</div>
+   <button class="btn btn-p" onclick="walkinSave('${esc(court)}',${hour})">Send booking request</button>`);
+  setTimeout(()=>$('#wiName')?.focus(),150);
+}
+function walkinSave(court,hour){
+  const name=$('#wiName').value.trim().replace(/\s+/g,' ');
+  if(name.length<2){toast('Please enter your name','bad');return}
+  const taken=DB.bookings.some(x=>x.date===bookDate&&x.court===court&&x.hour===hour&&['confirmed','done','conflict','pending'].includes(x.status));
+  if(taken){toast('Sorry — that slot was just taken','warn');closeModal();vBook();return}
+  let p=DB.players.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(!p){
+    p={id:uid('P'),name,phone:$('#wiPhone').value.trim(),email:'',tier:'Guest',rating:1000,dupr:'',
+       wins:0,losses:0,noShows:0,joined:today(),channels:{email:false,sms:!!$('#wiPhone').value.trim()},notes:'Walk-in (self-registered)'};
+    DB.players.push(p);queue('players',p);
+  }else if(!p.phone&&$('#wiPhone').value.trim()){p.phone=$('#wiPhone').value.trim();queue('players',p);}
+  const b=bk(bookDate,court,hour,p.id,'walkin');
+  b.status='pending';
+  DB.bookings.push(b);queue('bookings',b);save();closeModal();
+  toast('⏳ Request sent, '+name.split(' ')[0]+' — waiting for staff confirmation','ok');
+  vBook();
+}
+function confirmBooking(id){
+  if(!can('booking.manage'))return deny();
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  const rival=DB.bookings.some(x=>x.id!==id&&x.date===b.date&&x.court===b.court&&x.hour===b.hour&&['confirmed','done'].includes(x.status));
+  if(rival){toast('Cannot confirm — the slot is already officially booked. Decline or rebook instead.','bad');return}
+  b.status='confirmed';queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);
+  if(p)notify(p,'Booking confirmed',`Hi ${p.name}, your walk-in booking is confirmed: ${b.court}, ${b.date} ${hh(b.hour)}. See you on court! — ${CFG.clubName}`);
+  toast('Booking confirmed ✓'+(p?' — '+p.name.split(' ')[0]+' notified':''),'ok');
+  if(CUR==='book')vBook();else if(CUR==='dash')vDash();
+}
+function declineBooking(id){
+  if(!can('booking.manage'))return deny();
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  b.status='cancelled';queue('bookings',b);save();closeModal();
+  const p=player(b.playerId);
+  if(p)notify(p,'Booking request declined',`Hi ${p.name}, we could not accommodate your ${b.date} ${hh(b.hour)} request this time. Please see the front desk for other available slots. — ${CFG.clubName}`);
+  toast('Request declined'+(p?' — '+p.name.split(' ')[0]+' notified':''),'warn');
+  if(CUR==='book')vBook();else if(CUR==='dash')vDash();
+}
+function pendingModal(){
+  const rows=pendingBookings().sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+  openModal(`<h2>⏳ Walk-in requests awaiting confirmation</h2>
+   ${rows.length?`<table>${rows.map(b=>{const p=player(b.playerId);return `<tr>
+     <td class="mono">${b.date} ${hh(b.hour)}</td><td>${esc(b.court)}</td>
+     <td><b>${esc(p?.name||'—')}</b>${p?.tier==='Guest'?' <span class="tag warn">Guest</span>':''}${p?.phone?`<div class="mono" style="font-size:11px;color:var(--dim)">${esc(p.phone)}</div>`:''}</td>
+     <td style="white-space:nowrap"><button class="btn btn-ball btn-sm" onclick="confirmBooking('${b.id}');pendingBookings().length?pendingModal():closeModal()">✓ Confirm</button>
+     <button class="btn btn-danger btn-sm" onclick="declineBooking('${b.id}');pendingBookings().length?pendingModal():closeModal()">✕</button></td></tr>`}).join('')}</table>`
+   :'<div class="empty"><b>No pending requests</b>Walk-in requests from the public booking screen appear here.</div>'}
+   <button class="btn btn-g" style="margin-top:14px" onclick="closeModal()">Close</button>`);
 }
 /* ---- conflict resolution actions ---- */
 function resolveKeep(id){if(!can('booking.manage'))return deny();
