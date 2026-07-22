@@ -104,7 +104,7 @@ canvas.chart{width:100%;height:220px;display:block}
 .empty b{display:block;color:var(--mut);font-size:15px;margin-bottom:5px}
 
 /* modal + toast */
-#modal{position:fixed;inset:0;z-index:90;background:rgba(4,12,24,.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;padding:0}
+#modal{position:fixed;inset:0;z-index:120;background:rgba(4,12,24,.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;padding:0}
 #modal.on{display:flex}
 #modal .sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;width:min(620px,100vw);max-height:88dvh;overflow-y:auto;padding:22px;animation:up .22s ease}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
@@ -221,11 +221,23 @@ canvas.chart{width:100%;height:220px;display:block}
     </div>
     <div class="tagline">Precision · Scale · Control</div>
     <div id="clubBrandLogin"></div>
+    <div class="seg" style="width:100%;margin-bottom:14px;display:flex"><button id="lt-staff" class="on" style="flex:1" onclick="loginTab('staff')">🏢 Club staff</button><button id="lt-player" style="flex:1" onclick="loginTab('player')">🏓 Players & guests</button></div>
+    <div id="tabStaff">
     <div class="field"><label>Operator</label>
       <select id="loginUser" class="inp"></select></div>
     <div class="field"><label>PIN</label>
       <input id="loginPin" class="inp mono" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"></div>
     <button class="btn btn-p" onclick="doLogin()">Enter Command Center</button>
+    </div>
+    <div id="tabPlayer" style="display:none">
+    <div class="field"><label>Email or mobile</label>
+      <input id="plId" class="inp" placeholder="juan@mail.com or 0917 555 0000" autocomplete="username"></div>
+    <div class="field"><label>Password</label>
+      <input id="plPw" class="inp" type="password" placeholder="••••••" autocomplete="current-password"></div>
+    <button class="btn btn-p" onclick="doLoginPlayer()">Sign in</button>
+    <div style="text-align:center;margin:10px 0 12px;font-size:13px;color:var(--mut)">New here? <a href="#" style="color:var(--cyan)" onclick="signupModal();return false">Create your account</a> — it takes 20 seconds.</div>
+    <div id="socialBox"></div>
+    </div>
     <div class="err" id="loginErr"></div>
     <div class="hint">Default PINs — Admin <span class="mono">1234</span> · Front Desk <span class="mono">2345</span> · Member kiosk <span class="mono">0000</span>. Change them in Settings → Security after first login.<br><br><span class="mono" style="color:var(--dim)">NEXARCH Systems Engineering · CYRABELL Platform · v1.0</span></div>
   </div>
@@ -274,7 +286,7 @@ const LS_KEY='nexpickle_db_v1';
 /* ---------------- CONFIG (Settings-editable) ---------------- */
 const DEFAULT_CFG={
   clubName:'NEXPICKLE Club', clubLogo:'', clubAddress:'', clubPhone:'', currency:'₱', timezone:'Asia/Manila',
-  payGcash:'', payMaya:'', payCardNote:'',
+  payGcash:'', payMaya:'', payCardNote:'', selfSignup:true, googleClientId:'', fbAppId:'',
   courts:['Court 1','Court 2','Court 3','Court 4'],
   openHour:6, closeHour:22, slotMinutes:60,
   rateOpenPlay:150, rateReserved:400, rateMemberDiscount:.2, rateCoach:600,
@@ -434,18 +446,119 @@ function closeModal(){closeCam();$('#modal').classList.remove('on')}
 function role(...r){return USER&&r.includes(USER.role)}
 
 /* ---------------- AUTH ---------------- */
-async function doLogin(){
-  const u=DB.users.find(x=>x.id===$('#loginUser').value);
-  const h=await sha($('#loginPin').value);
-  if(!u||u.pin!==h){$('#loginErr').textContent='Invalid PIN. Access denied.';return}
+function loginAs(u){
   USER=u;sessionStorage.setItem('nexpickle_session',u.id);
   $('#login').style.display='none';$('#app').classList.add('on');
   $('#whoPill').textContent=u.name+' · '+u.role.toUpperCase();
   buildNav();go('dash');
   if(CFG.gasUrl)scheduleAutoSync();
 }
+async function doLogin(){
+  const u=DB.users.find(x=>x.id===$('#loginUser').value);
+  const h=await sha($('#loginPin').value);
+  if(!u||u.pin!==h){$('#loginErr').textContent='Invalid PIN. Access denied.';return}
+  loginAs(u);
+}
 function logout(){USER=null;sessionStorage.removeItem('nexpickle_session');location.reload()}
-function fillLogin(){$('#loginUser').innerHTML=DB.users.map(u=>`<option value="${u.id}">${esc(u.name)} — ${u.role}</option>`).join('')}
+function isPersonal(u){return u.authType==='password'||u.authType==='google'||u.authType==='facebook'}
+function playerAccounts(){return DB.users.filter(isPersonal)}
+function fillLogin(){$('#loginUser').innerHTML=DB.users.filter(u=>!isPersonal(u)).map(u=>`<option value="${u.id}">${esc(u.name)} — ${u.role}</option>`).join('')}
+function loginTab(t){
+  $('#tabStaff').style.display=t==='staff'?'':'none';
+  $('#tabPlayer').style.display=t==='player'?'':'none';
+  $('#lt-staff').classList.toggle('on',t==='staff');
+  $('#lt-player').classList.toggle('on',t==='player');
+  $('#loginErr').textContent='';
+  if(t==='player')renderSocialButtons();
+}
+function normLogin(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'')}
+/* ---- player account sign-in (email/mobile + password) ---- */
+async function doLoginPlayer(){
+  const key=normLogin($('#plId').value),pw=$('#plPw').value;
+  if(!key||!pw){$('#loginErr').textContent='Enter your email/mobile and password.';return}
+  const h=await sha(pw);
+  const u=DB.users.find(x=>isPersonal(x)&&(normLogin(x.login)===key||normLogin(x.email)===key||normLogin(x.phone)===key)&&x.pin===h);
+  if(!u){$('#loginErr').textContent='Account not found or wrong password.';return}
+  loginAs(u);
+}
+/* ---- self-registration: auto-creates a Guest login + linked player ---- */
+function signupModal(){
+  if(CFG.selfSignup===false){toast('Self-registration is disabled — please see the front desk','warn');return}
+  openModal(`<h2>Create your player account</h2>
+   <div class="field"><label>Full name *</label><input id="suName" class="inp" placeholder="Juan Dela Cruz" maxlength="60"></div>
+   <div class="grid g2">
+    <div class="field"><label>Mobile *</label><input id="suPhone" class="inp mono" inputmode="tel" placeholder="0917 555 0000"></div>
+    <div class="field"><label>Email (optional)</label><input id="suEmail" class="inp" type="email" placeholder="juan@mail.com"></div></div>
+   <div class="field"><label>Password (min 6 characters) *</label><input id="suPw" class="inp" type="password" maxlength="40"></div>
+   <div style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:10px">Your account is created instantly as a <b>Guest</b> and linked to your own player record — you can then book free slots, pay confirmed bookings (GCash · Maya · Card · Cash), and cancel your own bookings up to 1 day before.</div>
+   <button class="btn btn-p" onclick="createAccount()">Create account & sign in</button>`);
+  setTimeout(()=>$('#suName')?.focus(),120);
+}
+async function createAccount(){
+  const name=$('#suName').value.trim().replace(/\s+/g,' ');
+  const phone=$('#suPhone').value.trim(),email=$('#suEmail').value.trim(),pw=$('#suPw').value;
+  if(name.length<2){toast('Please enter your full name','bad');return}
+  if(!phone){toast('Mobile number is required','bad');return}
+  if(pw.length<6){toast('Password must be at least 6 characters','bad');return}
+  const key=normLogin(email||phone);
+  if(DB.users.some(x=>isPersonal(x)&&(normLogin(x.login)===key||normLogin(x.email)===normLogin(email||'∅')||normLogin(x.phone)===normLogin(phone)))){
+    toast('An account with that mobile/email already exists — sign in instead','warn');return}
+  let p=DB.players.find(x=>x.name.toLowerCase()===name.toLowerCase()&&!DB.users.some(u=>u.playerId===x.id));
+  if(!p){p={id:uid('P'),name,phone,email,tier:'Guest',rating:1000,dupr:'',wins:0,losses:0,noShows:0,
+    joined:today(),channels:{email:!!email,sms:true},notes:'Self-registered account'};
+    DB.players.push(p);}else{p.phone=p.phone||phone;p.email=p.email||email;}
+  queue('players',p);
+  const u={id:uid('U'),name,role:'guest',pin:await sha(pw),authType:'password',login:key,email,phone,playerId:p.id};
+  DB.users.push(u);queue('users',u);save();closeModal();
+  toast('Welcome, '+name.split(' ')[0]+'! Your account is ready 🏓','ok');
+  loginAs(u);
+}
+/* ---- Google & Facebook sign-in (hosted HTTPS + IDs configured in Settings) ---- */
+function socialReady(){return location.protocol==='https:'}
+function renderSocialButtons(){
+  const el=$('#socialBox');if(!el)return;
+  if(!socialReady()){el.innerHTML=(CFG.googleClientId||CFG.fbAppId)?'<div style="font-size:11.5px;color:var(--dim);text-align:center">Google / Facebook sign-in works on the hosted club app (HTTPS).</div>':'';return}
+  el.innerHTML=`${CFG.googleClientId?'<div id="gBtn" style="display:flex;justify-content:center;margin-bottom:8px"></div>':''}
+   ${CFG.fbAppId?'<button class="btn btn-g" style="width:100%;background:#1877F2;border-color:#1877F2;color:#fff" onclick="fbLogin()">ⓕ Continue with Facebook</button>':''}`;
+  if(CFG.googleClientId)loadGoogle();
+}
+function loadGoogle(){
+  const init=()=>{try{
+    google.accounts.id.initialize({client_id:CFG.googleClientId,callback:handleGoogleCred});
+    google.accounts.id.renderButton($('#gBtn'),{theme:'filled_black',size:'large',width:280,text:'continue_with'});
+  }catch(e){}};
+  if(window.google?.accounts?.id)return init();
+  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=init;document.head.appendChild(sc);
+}
+async function handleGoogleCred(resp){
+  try{
+    const p=JSON.parse(atob(resp.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    await socialSignIn('g:'+p.sub,p.name||p.email,p.email||'','google');
+  }catch(e){toast('Google sign-in failed: '+e.message,'bad')}
+}
+function fbLogin(){
+  const start=()=>FB.login(r=>{
+    if(!r.authResponse){toast('Facebook sign-in cancelled');return}
+    FB.api('/me',{fields:'name,email'},me=>socialSignIn('f:'+me.id,me.name,me.email||'','facebook'));
+  },{scope:'public_profile,email'});
+  if(window.FB)return start();
+  const sc=document.createElement('script');sc.src='https://connect.facebook.net/en_US/sdk.js';sc.async=true;
+  sc.onload=()=>{FB.init({appId:CFG.fbAppId,version:'v19.0',cookie:true});start()};
+  document.head.appendChild(sc);
+}
+async function socialSignIn(authId,name,email,type){
+  let u=DB.users.find(x=>x.authId===authId);
+  if(!u){
+    let p=DB.players.find(x=>email&&normLogin(x.email)===normLogin(email)&&!DB.users.some(v=>v.playerId===x.id));
+    if(!p){p={id:uid('P'),name,phone:'',email,tier:'Guest',rating:1000,dupr:'',wins:0,losses:0,noShows:0,
+      joined:today(),channels:{email:!!email,sms:false},notes:'Signed up via '+type};DB.players.push(p);}
+    queue('players',p);
+    u={id:uid('U'),name,role:'guest',pin:await sha(uid('x')+Math.random()),authType:type,authId,login:normLogin(email||authId),email,phone:'',playerId:p.id};
+    DB.users.push(u);queue('users',u);save();
+    toast('Welcome, '+name.split(' ')[0]+'! Account created via '+(type==='google'?'Google':'Facebook')+' 🏓','ok');
+  }else toast('Welcome back, '+u.name.split(' ')[0]+'!','ok');
+  loginAs(u);
+}
 
 /* ---------------- NAV / ROUTER ---------------- */
 const ICONS={
@@ -611,7 +724,8 @@ function vBookDay(){
           return `<div class="slot" ${act?`onclick="${act}"`:''}>＋</div>`;}
         const nm=player(b.playerId)?.name||'—';
         const cls=b.status==='conflict'?'conflict':b.status==='pending'?'pending':b.status==='done'?'mine':'booked';
-        const open=can('booking.manage')||can('booking.cancel.own');
+        const ownOK=!USER?.playerId||b.playerId===USER.playerId;   // personal accounts: own bookings only
+        const open=can('booking.manage')||(can('booking.cancel.own')&&ownOK);
         return `<div class="slot ${cls}" ${open?`onclick="bookingCard('${b.id}')"`:''} title="${esc(nm)}${b.status==='conflict'?' — CONFLICT':b.status==='pending'?' — AWAITING CONFIRMATION':''}">${b.status==='conflict'?'⚠ ':b.status==='pending'?'⏳ ':''}${esc(nm.split(' ')[0])}</div>`;}).join('')).join('')}
    </div></div>
   </div>`;
@@ -715,7 +829,9 @@ function bookingCard(id){
    cancel OWN bookings up to 1 day before the booked date, verified by name. */
 function myBookingCard(id){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  if(USER?.playerId&&b.playerId!==USER.playerId){toast('That booking belongs to another player','warn');return}
   const p=player(b.playerId);
+  const acct=!!USER?.playerId;                      // signed-in personal account
   const canCancelDate=b.date>today();               // at least 1 day before
   const amt=bookAmount(b);
   const payable=b.status==='confirmed'&&!b.paid&&can('booking.pay.own');
@@ -734,10 +850,12 @@ function myBookingCard(id){
     <button class="btn btn-g btn-sm" onclick="selfPayPanel('${b.id}','Cash')">💵 Cash on-site</button>
    </div><div id="spPanel"></div>`:''}
    <div class="nav-sec" style="padding-left:0;margin-top:16px">CANCEL BOOKING</div>
-   ${canCancelDate?`
+   ${canCancelDate?(acct?`
+   <div style="font-size:12.5px;color:var(--dim);margin-bottom:8px">Signed in as <b style="color:var(--ink)">${esc(USER.name)}</b> — you may cancel this booking.</div>
+   <button class="btn btn-danger btn-sm" onclick="selfCancel('${b.id}')">Cancel my booking</button>`:`
    <div style="font-size:12.5px;color:var(--dim);margin-bottom:8px">Only the person who booked may cancel. Type the full name exactly as booked to confirm.</div>
    <div class="field"><input id="scName" class="inp" placeholder="Full name on the booking" autocomplete="off"></div>
-   <button class="btn btn-danger btn-sm" onclick="selfCancel('${b.id}')">Cancel my booking</button>`
+   <button class="btn btn-danger btn-sm" onclick="selfCancel('${b.id}')">Cancel my booking</button>`)
    :`<div style="background:var(--navy-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--mut);line-height:1.6">🔒 Cancellations must be made at least <b style="color:var(--ink)">1 day before</b> the booked date. For same-day changes please see the front desk — staff can assist anytime.</div>`}
    <button class="btn btn-g" style="margin-top:14px" onclick="closeModal()">Close</button>`);
 }
@@ -764,6 +882,7 @@ function selfPayPanel(id,method){
 function selfPay(id,method){
   if(!can('booking.pay.own'))return deny();
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  if(USER?.playerId&&b.playerId!==USER.playerId){toast('You can only pay your own bookings','bad');return}
   if(b.status!=='confirmed'||b.paid){toast('This booking cannot be paid right now','warn');return}
   const ref=($('#spRef')?.value||'').trim();
   if((method==='GCash'||method==='Maya')&&ref.length<4){toast('Please enter the '+method+' reference number','bad');return}
@@ -782,9 +901,13 @@ function selfCancel(id){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   if(b.date<=today()){toast('Cancellations close 1 day before the booked date — please see the front desk','warn');return}
   const p=player(b.playerId);
-  const typed=($('#scName')?.value||'').trim().replace(/\s+/g,' ').toLowerCase();
-  if(!p||typed!==p.name.trim().replace(/\s+/g,' ').toLowerCase()){
-    toast('Name does not match this booking — only the person who booked may cancel','bad');return}
+  if(USER?.playerId){ // personal account: identity IS the verification
+    if(b.playerId!==USER.playerId){toast('You can only cancel your own bookings','bad');return}
+  }else{
+    const typed=($('#scName')?.value||'').trim().replace(/\s+/g,' ').toLowerCase();
+    if(!p||typed!==p.name.trim().replace(/\s+/g,' ').toLowerCase()){
+      toast('Name does not match this booking — only the person who booked may cancel','bad');return}
+  }
   b.status='cancelled';queue('bookings',b);save();closeModal();
   notify(p,'Booking cancelled',`${CFG.clubName}: your ${b.date} ${hh(b.hour)} booking on ${b.court} was cancelled as requested. Book again anytime!`);
   toast('Booking cancelled — confirmation sent','ok');
@@ -796,21 +919,29 @@ function walkinForm(court,hour){
   if(!can('booking.request')&&!can('booking.create'))return deny();
   const taken=DB.bookings.some(x=>x.date===bookDate&&x.court===court&&x.hour===hour&&['confirmed','done','conflict','pending'].includes(x.status));
   if(taken){toast('That slot was just taken — pick another','warn');vBook();return}
-  openModal(`<h2>👋 Walk-in booking request</h2>
+  const me=USER?.playerId?player(USER.playerId):null;
+  openModal(`<h2>👋 ${me?'Book this slot':'Walk-in booking request'}</h2>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
     <span class="tag cy">📅 ${bookDate}</span><span class="tag cy">🏟 ${esc(court)}</span><span class="tag cy">🕐 ${hh(hour)}</span><span class="tag bl">1 hour</span></div>
    <div style="font-size:12.5px;color:var(--dim);margin-bottom:12px">Date, court, and time are fixed to the slot you tapped.</div>
-   <div class="field"><label>Your full name *</label><input id="wiName" class="inp" placeholder="Juan Dela Cruz" maxlength="60" autocomplete="off"></div>
-   <div class="field"><label>Mobile number (optional)</label><input id="wiPhone" class="inp mono" inputmode="tel" placeholder="0917 555 0000" maxlength="20"></div>
+   ${me?`<div style="background:var(--navy-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13.5px">Booking as <b style="color:var(--cyan)">${esc(me.name)}</b> <span class="tag warn">${esc(me.tier)}</span></div>`
+   :`<div class="field"><label>Your full name *</label><input id="wiName" class="inp" placeholder="Juan Dela Cruz" maxlength="60" autocomplete="off"></div>
+   <div class="field"><label>Mobile number (optional)</label><input id="wiPhone" class="inp mono" inputmode="tel" placeholder="0917 555 0000" maxlength="20"></div>`}
    <div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.4);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#FFC107;line-height:1.6;margin-bottom:12px">⏳ Your request goes to the front desk — a staff member will confirm it to make the booking official. Please wait nearby or check back on this screen.</div>
    <button class="btn btn-p" onclick="walkinSave('${esc(court)}',${hour})">Send booking request</button>`);
   setTimeout(()=>$('#wiName')?.focus(),150);
 }
 function walkinSave(court,hour){
-  const name=$('#wiName').value.trim().replace(/\s+/g,' ');
-  if(name.length<2){toast('Please enter your name','bad');return}
   const taken=DB.bookings.some(x=>x.date===bookDate&&x.court===court&&x.hour===hour&&['confirmed','done','conflict','pending'].includes(x.status));
   if(taken){toast('Sorry — that slot was just taken','warn');closeModal();vBook();return}
+  if(USER?.playerId){ // personal account: books as itself
+    const p=player(USER.playerId);
+    const b=bk(bookDate,court,hour,p.id,'walkin');b.status='pending';
+    DB.bookings.push(b);queue('bookings',b);save();closeModal();
+    toast('⏳ Request sent, '+p.name.split(' ')[0]+' — waiting for staff confirmation','ok');vBook();return;
+  }
+  const name=$('#wiName').value.trim().replace(/\s+/g,' ');
+  if(name.length<2){toast('Please enter your name','bad');return}
   let p=DB.players.find(x=>x.name.toLowerCase()===name.toLowerCase());
   if(!p){
     p={id:uid('P'),name,phone:$('#wiPhone').value.trim(),email:'',tier:'Guest',rating:1000,dupr:'',
@@ -1051,13 +1182,15 @@ function vScore(){
     <div class="card"><h3>Start a match</h3>
      <div class="field"><label>Format</label><select id="mFmt" class="inp" onchange="$('#duoRow').style.display=this.value==='doubles'?'':'none'"><option value="singles">Singles (1 v 1)</option><option value="doubles">Doubles (2 v 2)</option></select></div>
      <div class="grid g2">
-      <div class="field"><label>Side A — Player 1</label>${playerSel('mA',0)}</div>
-      <div class="field"><label>Side B — Player 1</label>${playerSel('mB',1)}</div>
+      <div class="field"><label>Side A — Player 1</label>${playerCombo('mA',0)}</div>
+      <div class="field"><label>Side B — Player 1</label>${playerCombo('mB',1)}</div>
      </div>
      <div class="grid g2" id="duoRow" style="display:none">
-      <div class="field"><label>Side A — Player 2</label>${playerSel('mA2',2)}</div>
-      <div class="field"><label>Side B — Player 2</label>${playerSel('mB2',3)}</div>
+      <div class="field"><label>Side A — Player 2</label>${playerCombo('mA2',2)}</div>
+      <div class="field"><label>Side B — Player 2</label>${playerCombo('mB2',3)}</div>
      </div>
+     <datalist id="plList">${DB.players.map(p=>`<option value="${esc(p.name)}">`).join('')}</datalist>
+     <div style="font-size:12px;color:var(--dim);margin:-4px 0 10px">Pick from the roster or simply <b style="color:var(--ink)">type any name</b> — new names are added automatically as Guest players.</div>
      <div class="grid g3">
       <div class="field"><label>Points to win</label><select id="mPts" class="inp"><option ${CFG.scoring.pointsToWin===11?'selected':''}>11</option><option ${CFG.scoring.pointsToWin===15?'selected':''}>15</option><option ${CFG.scoring.pointsToWin===21?'selected':''}>21</option></select></div>
       <div class="field"><label>Best of</label><select id="mBo" class="inp"><option>1</option><option ${CFG.scoring.bestOf===3?'selected':''}>3</option><option>5</option></select></div>
@@ -1067,12 +1200,33 @@ function vScore(){
     <div class="card" style="margin-top:14px"><h3>Recent results</h3>${recentMatches()}</div>`;return}
   renderLive();
 }
+function playerCombo(id,idx){
+  return `<input id="${id}" class="inp" list="plList" placeholder="Pick or type a name…" autocomplete="off" value="${esc(DB.players[idx]?.name||'')}">`;
+}
+function resolvePlayerByName(name){
+  name=name.trim().replace(/\s+/g,' ');
+  if(name.length<2)return null;
+  let p=DB.players.find(x=>x.name.trim().replace(/\s+/g,' ').toLowerCase()===name.toLowerCase());
+  if(!p){
+    p={id:uid('P'),name,phone:'',email:'',tier:'Guest',rating:1000,dupr:'',wins:0,losses:0,noShows:0,
+       joined:today(),channels:{},notes:'Added at live scoring'};
+    DB.players.push(p);queue('players',p);
+    toast('New guest player added: '+name,'ok');
+  }
+  return p.id;
+}
 function startMatch(){if(!can('match.score'))return deny();
   const doubles=$('#mFmt').value==='doubles';
-  const a=$('#mA').value,b=$('#mB').value;
-  const a2=doubles?$('#mA2').value:null,b2=doubles?$('#mB2').value:null;
+  const names=[$('#mA').value,$('#mB').value,doubles?$('#mA2').value:'',doubles?$('#mB2').value:''];
+  if(!names[0].trim()||!names[1].trim()||(doubles&&(!names[2].trim()||!names[3].trim()))){toast('Enter a name for every player','bad');return}
+  const norm=names.filter(n=>n.trim()).map(n=>n.trim().replace(/\s+/g,' ').toLowerCase());
+  if(new Set(norm).size!==norm.length){toast('Each player can only be on one side','bad');return}
+  const a=resolvePlayerByName(names[0]),b=resolvePlayerByName(names[1]);
+  const a2=doubles?resolvePlayerByName(names[2]):null,b2=doubles?resolvePlayerByName(names[3]):null;
+  if(!a||!b||(doubles&&(!a2||!b2))){toast('Player names must be at least 2 characters','bad');return}
   const ids=[a,b,a2,b2].filter(Boolean);
   if(new Set(ids).size!==ids.length){toast('Each player can only be on one side','bad');return}
+  save();
   liveMatch={id:uid('M'),format:doubles?'doubles':'singles',a,b,a2,b2,scoreA:0,scoreB:0,gamesA:0,gamesB:0,server:'A',serverNum:2,
    pts:+$('#mPts').value,bestOf:+$('#mBo').value,rally:$('#mRs').value==='rally',
    status:'live',started:new Date().toISOString(),tournamentId:null,log:[]};
@@ -1080,7 +1234,37 @@ function startMatch(){if(!can('match.score'))return deny();
 }
 function sidePlayers(m,s){return [player(m[s.toLowerCase()]),m[s.toLowerCase()+'2']?player(m[s.toLowerCase()+'2']):null].filter(Boolean)}
 function sideName(m,s){const ps=sidePlayers(m,s);return ps.length>1?ps.map(p=>p.name.split(' ')[0]).join(' / '):(ps[0]?.name||'Side '+s)}
-function sideAvatars(m,s,sz){return `<div class="sb-duo">${sidePlayers(m,s).map(p=>avatar(p,sz||58)).join('')}</div>`}
+function sideAvatars(m,s,sz,tap){return `<div class="sb-duo">${sidePlayers(m,s).map(p=>tap&&p?`<span style="cursor:pointer" title="Tap to change ${esc(p.name)}'s photo" onclick="livePhotoModal('${p.id}')">${avatar(p,sz||58)}</span>`:avatar(p,sz||58)).join('')}</div>`}
+/* change a player's picture right from the live console — updates every cast surface instantly */
+function livePhotoModal(pid){
+  if(!can('match.score'))return deny();
+  const p=player(pid);if(!p)return;
+  stagedPhoto=p.photo||null;
+  openModal(`<h2>📷 ${esc(p.name)} — photo</h2>
+   <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+    <span id="photoPrev">${avatar({...p,photo:stagedPhoto},72)}</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn btn-g btn-sm" onclick="pickPhoto()">📁 Upload</button>
+     <button class="btn btn-g btn-sm" onclick="openCamera()">📷 Camera</button>
+     ${p.photo?`<button class="btn btn-danger btn-sm" onclick="stagedPhoto=null;$('#photoPrev').innerHTML=avatar({name:'${esc(p.name)}'},72)">Remove</button>`:''}
+    </div></div>
+   <div id="camHost" style="display:none;margin-bottom:14px;background:var(--navy-2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center">
+    <video id="camVideo" autoplay playsinline muted style="width:100%;max-width:320px;border-radius:10px;background:#000;aspect-ratio:1;object-fit:cover"></video>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+     <button class="btn btn-ball btn-sm" onclick="snapCam()">📸 Capture</button>
+     <button class="btn btn-g btn-sm" onclick="switchCam()">🔄 Flip</button>
+     <button class="btn btn-g btn-sm" onclick="closeCam()">Cancel</button></div></div>
+   <div style="display:flex;gap:10px">
+    <button class="btn btn-p" onclick="saveLivePhoto('${p.id}')">Save photo</button>
+    <button class="btn btn-g" onclick="closeCam();closeModal()">Cancel</button></div>`);
+}
+function saveLivePhoto(pid){
+  const p=player(pid);if(!p)return;
+  p.photo=stagedPhoto;queue('players',p);save();closeCam();closeModal();
+  toast('Photo updated — live everywhere','ok');
+  if(liveMatch)renderLive();
+  renderCast();
+}
 function renderLive(){
   const m=liveMatch;
   const call=m.rally?`${m.scoreA}–${m.scoreB}`:`${m.server==='A'?m.scoreA:m.scoreB}–${m.server==='A'?m.scoreB:m.scoreA}–${m.serverNum}`;
@@ -1088,12 +1272,12 @@ function renderLive(){
   <div class="court-sb">
    <div style="text-align:center;font-family:var(--font-m);font-size:12px;letter-spacing:.2em;color:var(--cyan);margin-bottom:10px">LIVE · ${m.format==='doubles'?'DOUBLES':'SINGLES'} · GAME ${m.gamesA+m.gamesB+1} · CALL <b style="color:var(--ball)">${call}</b></div>
    <div class="sb-grid">
-    <div>${sideAvatars(m,'A')}<div class="sb-name">${esc(sideName(m,'A'))}</div>
+    <div>${sideAvatars(m,'A',58,true)}<div class="sb-name">${esc(sideName(m,'A'))}</div>
      <div class="sb-serve">${m.server==='A'?'● SERVING '+(m.rally?'':'#'+m.serverNum):''}</div>
      <div class="sb-score" onclick="point('A')">${m.scoreA}</div>
      <div class="sb-games">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m.gamesA?'w':''}"></span>`).join('')}</div></div>
     <div class="sb-mid">TAP<br>SCORE<br>TO ADD<br>POINT</div>
-    <div>${sideAvatars(m,'B')}<div class="sb-name">${esc(sideName(m,'B'))}</div>
+    <div>${sideAvatars(m,'B',58,true)}<div class="sb-name">${esc(sideName(m,'B'))}</div>
      <div class="sb-serve">${m.server==='B'?'● SERVING '+(m.rally?'':'#'+m.serverNum):''}</div>
      <div class="sb-score" onclick="point('B')">${m.scoreB}</div>
      <div class="sb-games">${[...Array(Math.ceil(m.bestOf/2))].map((_,i)=>`<span class="${i<m.gamesB?'w':''}"></span>`).join('')}</div></div>
@@ -2098,6 +2282,16 @@ function vSet(){
      <button class="btn btn-ball" onclick="exportExcel()">📗 Download Excel backup (.xlsx)</button>
      <button class="btn btn-g" onclick="restoreFromExcel()">📗 Restore from Excel file</button></div>
     <div class="hint">Restores overwrite this device (credentials kept) and are followed by an automatic conflict scan. Device bootstrap credentials are never written into backups.</div>
+   </div>
+   <div class="card" style="margin-top:14px"><h3>Player sign-in</h3>
+    <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px">Guests create their own login (password) on the login screen — the account is auto-linked to a personal player record, and they can only book, pay, and cancel <b style="color:var(--ink)">their own</b> bookings. ${playerAccounts().length?`<span class="tag cy">${playerAccounts().length} player account${playerAccounts().length>1?'s':''}</span>`:''}</div>
+    <div class="setrow"><div><div class="t">Allow self-registration</div><div class="s">Show "Create your account" on the login screen</div></div>
+     <label class="switch"><input type="checkbox" ${CFG.selfSignup!==false?'checked':''} onchange="CFG.selfSignup=this.checked;save()"><i></i></label></div>
+    <div class="grid g2" style="margin-top:10px">
+     <div class="field"><label>Google OAuth Client ID (optional)</label><input class="inp mono" style="font-size:11px" value="${esc(CFG.googleClientId)}" placeholder="1234…apps.googleusercontent.com" onchange="CFG.googleClientId=this.value.trim();save()"></div>
+     <div class="field"><label>Facebook App ID (optional)</label><input class="inp mono" value="${esc(CFG.fbAppId)}" placeholder="123456789012345" onchange="CFG.fbAppId=this.value.trim();save()"></div>
+    </div>
+    <div class="hint">Google/Facebook buttons appear on the Players tab of the login screen once an ID is set — they work on the hosted club app (HTTPS, e.g. GitHub Pages), and each first sign-in auto-creates the Guest account + player record. Get IDs from Google Cloud Console (OAuth client, add your site as an authorized JavaScript origin) and Meta for Developers.</div>
    </div>
    <div class="card" style="margin-top:14px"><h3>Demo data & total cleanup</h3>
     <div style="font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px"><b style="color:var(--ink)">🎮 Demo data</b> — load a realistic sample club (players, 3 weeks of bookings & payments, events, match results, a completed tournament with podium, kiosk playlist) for training, demos, or trying features safely. Every demo record is tagged and removable in one tap.${demoCount()?` <span class="tag cy">${demoCount()} demo records loaded</span>`:''}</div>
