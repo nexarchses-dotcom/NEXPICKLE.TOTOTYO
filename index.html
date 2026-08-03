@@ -319,13 +319,29 @@ function save(){DB.cfg=CFG;cfgAutoQueue();localStorage.setItem(LS_KEY,JSON.strin
    credentials (gasUrl, gasToken, autoSyncMin) stay device-local. */
 let _cfgJson=null;
 function cloudCfgObj(){const c=structuredClone(CFG);delete c.gasUrl;delete c.gasToken;delete c.autoSyncMin;delete c._rev;return c}
+/* config (incl. club logo, a base64 image) can exceed the Sheets 50,000-char
+   single-cell limit — chunk it across cfg_0..cfg_n columns, same pattern as kiosk images */
+const CFGCHUNK=40000;
+function cfgPack(id,rev,cfgObj){
+  const js=JSON.stringify(cfgObj),row={id,_rev:rev};
+  for(let i=0;i*CFGCHUNK<js.length;i++)row['cfg_'+i]=js.slice(i*CFGCHUNK,(i+1)*CFGCHUNK);
+  if(!js.length)row.cfg_0='';
+  return row;
+}
+function cfgUnpack(raw){
+  if(!raw)return null;
+  if(raw.cfg&&typeof raw.cfg==='object')return raw.cfg;      // legacy unchunked rows still restore
+  let js='',i=0;while(raw['cfg_'+i]!==undefined){js+=raw['cfg_'+i];i++}
+  if(!js)return null;
+  try{return JSON.parse(js)}catch(e){return null}
+}
 function cfgAutoQueue(){
   const j=JSON.stringify(cloudCfgObj());
   if(_cfgJson===null){_cfgJson=j;return}       // baseline on first save after load
   if(j===_cfgJson)return;
   _cfgJson=j;CFG._rev=Date.now();
   DB.outbox=DB.outbox.filter(o=>o.sheet!=='config');   // keep only latest config revision
-  DB.outbox.push({sheet:'config',row:{id:'club-config',_rev:CFG._rev,cfg:cloudCfgObj()},ts:Date.now()});
+  DB.outbox.push({sheet:'config',row:cfgPack('club-config',CFG._rev,cloudCfgObj()),ts:Date.now()});
   if(typeof updateSyncPill==='function'&&document.getElementById('syncDot'))updateSyncPill();
   if(typeof schedulePushSoon==='function')schedulePushSoon();
 }
@@ -2385,7 +2401,7 @@ async function backupToSheets(){
   BK_TABLES.forEach(k=>DB[k].forEach(r=>queue(k,r)));
   DB.kiosk.items.forEach((it,i)=>{it.ord=i;kioskQueueItem(it)});
   DB.outbox=DB.outbox.filter(o=>o.sheet!=='config');
-  DB.outbox.push({sheet:'config',row:{id:'club-config',_rev:CFG._rev=Date.now(),cfg:cloudCfgObj()},ts:Date.now()});
+  DB.outbox.push({sheet:'config',row:cfgPack('club-config',CFG._rev=Date.now(),cloudCfgObj()),ts:Date.now()});
   _cfgJson=JSON.stringify(cloudCfgObj());save();
   toast('Backing up '+DB.outbox.length+' records to Google Sheets…');
   await syncNow();
@@ -2405,7 +2421,7 @@ async function restoreFromSheets(){
     const res=await gasPost({action:'pull',token:CFG.gasToken});
     if(!res.ok){toast('Restore failed: '+(res.error||'unknown'),'bad');return}
     applyRestore({
-      cfg:(res.pull.config||[]).find(r=>r.id==='club-config'),
+      cfgRow:(res.pull.config||[]).find(r=>r.id==='club-config'),
       users:res.pull.users||[],kiosk:(res.pull.kiosk||[]).map(kioskUnpack),
       players:res.pull.players||[],bookings:res.pull.bookings||[],events:res.pull.events||[],
       matches:res.pull.matches||[],tournaments:res.pull.tournaments||[],payments:res.pull.payments||[]});
@@ -2416,7 +2432,8 @@ function applyRestore(d){
   const keep={gasUrl:CFG.gasUrl,gasToken:CFG.gasToken,autoSyncMin:CFG.autoSyncMin};
   BK_TABLES.forEach(k=>{if(d[k])DB[k]=d[k].map(r=>normPulled(k,r))});
   if(d.kiosk)DB.kiosk.items=d.kiosk.filter(i=>!i.deleted).sort((a,b)=>(+a.ord||0)-(+b.ord||0));
-  if(d.cfg&&d.cfg.cfg){Object.assign(CFG,d.cfg.cfg,keep);CFG._rev=+d.cfg._rev||Date.now()}
+  const cfgFromRow=d.cfgRow?cfgUnpack(d.cfgRow):null;
+  if(cfgFromRow){Object.assign(CFG,cfgFromRow,keep);CFG._rev=+d.cfgRow._rev||Date.now()}
   else if(d.cfgObj){Object.assign(CFG,d.cfgObj,keep);CFG._rev=d.cfgRev||Date.now()}
   if(d.notifLog)DB.notifLog=d.notifLog;
   DB.cfg=CFG;_cfgJson=JSON.stringify(cloudCfgObj());
@@ -2614,9 +2631,10 @@ async function syncNow(silent){
     if(res.ok){DB.outbox=[];DB.meta.lastSync=new Date().toISOString();
       if(res.pull){
         const cRow=(res.pull.config||[]).find(r=>r.id==='club-config');
-        if(cRow&&cRow.cfg&&(+cRow._rev||0)>(+CFG._rev||0)){
+        const cObj=cRow?cfgUnpack(cRow):null;
+        if(cObj&&(+cRow._rev||0)>(+CFG._rev||0)){
           const keep={gasUrl:CFG.gasUrl,gasToken:CFG.gasToken,autoSyncMin:CFG.autoSyncMin};
-          Object.assign(CFG,cRow.cfg,keep);CFG._rev=+cRow._rev;
+          Object.assign(CFG,cObj,keep);CFG._rev=+cRow._rev;
           _cfgJson=JSON.stringify(cloudCfgObj());DB.cfg=CFG;
           applyBranding();toast('Club configuration updated from Google Sheets','ok');
         }
