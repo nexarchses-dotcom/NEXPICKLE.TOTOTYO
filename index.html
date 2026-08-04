@@ -2702,7 +2702,8 @@ function updateSyncPill(){
   const on=!!CFG.gasUrl;
   $('#syncDot').className='dot '+(on?(DB.outbox.length?'':'ok'):'');
   const auto=on&&CFG.autoSyncMin>0?' · AUTO':'';
-  $('#syncTxt').textContent=on?(DB.outbox.length?DB.outbox.length+' PENDING'+auto:'SYNCED'+auto):'LOCAL';
+  const rtc=(typeof rtcLinked!=='undefined'&&rtcLinked>0)?' · '+rtcLinked+' DIRECT':'';
+  $('#syncTxt').textContent=on?(DB.outbox.length?DB.outbox.length+' PENDING'+auto+rtc:'SYNCED'+auto+rtc):'LOCAL';
 }
 function scheduleAutoSync(){clearInterval(syncTimer);
   if(CFG.autoSyncMin>0&&CFG.gasUrl)syncTimer=setInterval(()=>syncNow(true),CFG.autoSyncMin*60000);
@@ -2904,13 +2905,103 @@ const IS_VIEWER=new URLSearchParams(location.search).has('viewer');
    Publisher posts each score update to Apps Script (CacheService relay);
    viewer devices open ?viewer=1 and poll every 2s. Works on any browser. */
 let tabletCast=false,_lastPub=0,_pubPending=null;
-const PUB_MS=250;   // publisher → relay: near-real-time push cadence
+const PUB_MS=250;   // publisher → relay: near-real-time push cadence (fallback path)
+/* ---- DIRECT WI-FI (WebRTC P2P, LAN speed) ----
+   When publisher and viewer are on the same Wi-Fi, they upgrade to a direct
+   RTCDataChannel — no round trip through Google Apps Script for the actual score
+   data, typically 5-30ms instead of ~250-400ms. Signaling (the one-time handshake
+   to find each other) piggybacks on the existing generic liveSet/liveGet relay —
+   zero backend changes. If P2P can't connect (different network, guest-Wi-Fi client
+   isolation, restrictive firewall) within a few seconds, the relay above keeps
+   working exactly as before — this is a pure speed upgrade, never a dependency. */
+const ICE_SERVERS=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
+async function sigPost(channel,data){if(!CFG.gasUrl)return;try{await gasPost({action:'liveSet',channel,data,token:CFG.gasToken})}catch(e){}}
+async function sigGet(channel){if(!CFG.gasUrl)return null;try{const r=await gasPost({action:'liveGet',channel,token:CFG.gasToken});return r&&r.ok?r.data:null}catch(e){return null}}
+async function waitIceComplete(pc){
+  if(pc.iceGatheringState==='complete')return;
+  await new Promise(res=>{pc.onicegatheringstatechange=()=>{if(pc.iceGatheringState==='complete')res()};setTimeout(res,2200)});
+}
+/* -- publisher (scorer device): host side, accepts P2P offers from any viewer -- */
+const rtcPeers={};                 // vid -> {pc,dc}
+const rtcAttempted=new Set();
+let _rtcHostTimer=null;
+function startRtcHost(){
+  stopRtcHost();
+  if(!('RTCPeerConnection' in window))return;
+  _rtcHostTimer=setInterval(rtcHostTick,900);rtcHostTick();
+}
+function stopRtcHost(){
+  clearInterval(_rtcHostTimer);_rtcHostTimer=null;
+  Object.values(rtcPeers).forEach(p=>{try{p.pc.close()}catch(e){}});
+  Object.keys(rtcPeers).forEach(k=>delete rtcPeers[k]);
+  rtcAttempted.clear();
+}
+async function rtcHostTick(){
+  if(!tabletCast||!CFG.gasUrl)return;
+  const pending=await sigGet('rtcPending')||[];
+  const fresh=pending.filter(vid=>!rtcAttempted.has(vid));
+  for(const vid of fresh){
+    rtcAttempted.add(vid);
+    const offer=await sigGet('rtcOffer_'+vid);
+    if(!offer)continue;
+    try{
+      const pc=new RTCPeerConnection({iceServers:ICE_SERVERS});
+      rtcPeers[vid]={pc,dc:null};
+      pc.ondatachannel=e=>{
+        rtcPeers[vid].dc=e.channel;
+        e.channel.onopen=()=>{
+          rtcLinked++;updateSyncPill();
+          const c=scoreCastContent();
+          if(c)try{e.channel.send(JSON.stringify({kind:'score',top:c.top,stage:c.stage,logo:CFG.clubLogo,foot:castFoot()}))}catch(x){}
+        };
+        e.channel.onclose=()=>{rtcLinked=Math.max(0,rtcLinked-1);updateSyncPill();delete rtcPeers[vid]};
+      };
+      await pc.setRemoteDescription(offer);
+      const answer=await pc.createAnswer();await pc.setLocalDescription(answer);
+      await waitIceComplete(pc);
+      await sigPost('rtcAnswer_'+vid,{sdp:pc.localDescription.sdp,type:pc.localDescription.type});
+    }catch(e){delete rtcPeers[vid]}
+  }
+  if(fresh.length){ // trim the shared mailbox so it doesn't grow unbounded
+    const still=await sigGet('rtcPending')||[];
+    await sigPost('rtcPending',still.filter(v=>!rtcAttempted.has(v)));
+  }
+}
+let rtcLinked=0;   // count of viewers connected via direct P2P right now (shown in the sync pill)
 function publishLive(payload){
+  Object.values(rtcPeers).forEach(p=>{if(p.dc&&p.dc.readyState==='open'){try{p.dc.send(JSON.stringify(payload))}catch(e){}}});
   if(!tabletCast||!CFG.gasUrl)return;
   const now=Date.now();
   const send=p=>{_lastPub=Date.now();gasPost({action:'liveSet',channel:'score',data:p,token:CFG.gasToken}).catch(()=>{})};
   if(now-_lastPub>PUB_MS){send(payload)}
   else{clearTimeout(_pubPending);_pubPending=setTimeout(()=>send(payload),PUB_MS-(now-_lastPub)+5)}
+}
+/* -- viewer side: attempts a direct P2P link; polling (initViewer) is always the safety net -- */
+let rtcViewerConn=null;
+async function tryRtcViewer(){
+  if(!('RTCPeerConnection' in window)||!CFG.gasUrl)return;
+  try{
+    const vid='V'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+    const pc=new RTCPeerConnection({iceServers:ICE_SERVERS});
+    const dc=pc.createDataChannel('score');
+    rtcViewerConn={pc,dc,connected:false};
+    dc.onopen=()=>{rtcViewerConn.connected=true;
+      const el=document.getElementById('rxNet');if(el)el.textContent='● DIRECT WI-FI';};
+    dc.onmessage=e=>{try{rxRenderPublic(JSON.parse(e.data))}catch(x){}};
+    dc.onclose=()=>{if(rtcViewerConn)rtcViewerConn.connected=false;
+      const el=document.getElementById('rxNet');if(el)el.textContent='● RELAY';};
+    const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+    await waitIceComplete(pc);
+    await sigPost('rtcOffer_'+vid,{sdp:pc.localDescription.sdp,type:pc.localDescription.type});
+    const pending=await sigGet('rtcPending')||[];
+    await sigPost('rtcPending',[...new Set([...pending,vid])]);
+    for(let i=0;i<8;i++){          // wait up to ~4.8s for the publisher to answer
+      await new Promise(r=>setTimeout(r,600));
+      if(rtcViewerConn?.connected)return;
+      const ans=await sigGet('rtcAnswer_'+vid);
+      if(ans){await pc.setRemoteDescription(ans);}
+    }
+  }catch(e){/* P2P unavailable — the relay poll in initViewer keeps the feed alive regardless */}
 }
 function viewerLink(){
   const base=location.protocol==='file:'?'https://<your-user>.github.io/nexpickle/':location.origin+location.pathname;
@@ -2919,7 +3010,8 @@ function viewerLink(){
 function castToTablet(){
   if(!CFG.gasUrl||!CFG.gasToken){toast('Set the Apps Script URL + token in Settings → Cloud sync first','warn');return}
   tabletCast=!tabletCast;
-  if(!tabletCast){toast('Tablet/phone live feed stopped');if(liveMatch)renderLive();return}
+  if(!tabletCast){stopRtcHost();toast('Tablet/phone live feed stopped');if(liveMatch)renderLive();return}
+  startRtcHost();
   const isFile=location.protocol==='file:';
   const link=viewerLink();
   const sameDeviceLink=location.href.split('?')[0]+'?viewer=1&g='+encodeURIComponent(CFG.gasUrl)+'&k='+encodeURIComponent(CFG.gasToken);
@@ -2937,16 +3029,24 @@ function castToTablet(){
    </div>`}
    <div class="field"><label>Viewer link (scan the QR or copy)</label>
     <input class="inp mono" style="font-size:11px" value="${esc(link)}" onclick="this.select()" readonly></div>
-   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script and updates in real time (as fast as ~250–400ms) — this is what actually reaches tablets and PCs; the 📡 Smart TV button is a separate, Chromecast-only mechanism and cannot target a generic tablet or computer. The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
+   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script and updates in real time (as fast as ~250–400ms). If the viewer is on the <b style="color:var(--ink)">same Wi-Fi</b>, it automatically upgrades to a direct device-to-device link (no cloud round trip, ~5–30ms) — the viewer screen shows <span class="mono">● DIRECT WI-FI</span> when that's active, or <span class="mono">● RELAY</span> otherwise. Either way it just works; the 📡 Smart TV button is a separate, Chromecast-only mechanism and cannot target a generic tablet or computer. The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
    <button class="btn btn-p" style="margin-top:12px" onclick="closeModal()">Done — feed is live</button>`);
 }
 function initViewer(){
   initReceiver(); // reuse the full-screen board UI
   const q=new URLSearchParams(location.search);
   const g=q.get('g')||CFG.gasUrl,k=q.get('k')||CFG.gasToken;
+  CFG.gasUrl=CFG.gasUrl||g;CFG.gasToken=CFG.gasToken||k; // let tryRtcViewer's signaling helpers read them
   const txt=document.getElementById('rxTxt');
   if(!g){txt.textContent='VIEWER: MISSING RELAY URL — OPEN THE LINK FROM THE SCORER DEVICE';return}
   txt.textContent='CONNECTING TO LIVE FEED…';
+  const netEl=document.getElementById('rxStage');
+  if(netEl&&netEl.parentElement&&!document.getElementById('rxNet')){
+    const badge=document.createElement('div');badge.id='rxNet';
+    badge.style.cssText='position:fixed;top:10px;right:14px;font:600 11px JetBrains Mono,monospace;letter-spacing:.08em;color:var(--dim);opacity:.8;z-index:5';
+    badge.textContent='● RELAY';document.body.appendChild(badge);
+  }
+  tryRtcViewer();  // attempt direct Wi-Fi upgrade; polling below is the guaranteed fallback
   let lastJSON='',errStreak=0,idleStreak=0;
   // adaptive cadence: near-real-time (400ms) while a match is actively live,
   // easing off to 1200ms when idle/waiting, and backing off further on errors —
@@ -2971,6 +3071,7 @@ function initViewer(){
       if(!lastJSON)txt.textContent='RECONNECTING…';
       delay=Math.min(1000*Math.pow(1.6,errStreak),8000);  // backoff if the relay is unreachable
     }
+    if(typeof rtcViewerConn!=='undefined'&&rtcViewerConn?.connected)delay=3000; // P2P is live: relay becomes a slow safety net
     setTimeout(poll,delay);
   }
   poll();
