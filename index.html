@@ -2919,19 +2919,24 @@ function castToTablet(){
   if(!CFG.gasUrl||!CFG.gasToken){toast('Set the Apps Script URL + token in Settings → Cloud sync first','warn');return}
   tabletCast=!tabletCast;
   if(!tabletCast){toast('Tablet/phone live feed stopped');if(liveMatch)renderLive();return}
+  const isFile=location.protocol==='file:';
   const link=viewerLink();
+  const sameDeviceLink=location.href.split('?')[0]+'?viewer=1&g='+encodeURIComponent(CFG.gasUrl)+'&k='+encodeURIComponent(CFG.gasToken);
   if(liveMatch&&CUR==='score')renderLive();
   const c=scoreCastContent();if(c)publishLive({kind:'score',top:c.top,stage:c.stage,logo:CFG.clubLogo,foot:castFoot()});
-  openModal(`<h2>📱 Live viewer — tablets & phones</h2>
-   <div style="font-size:13.5px;color:var(--mut);line-height:1.7;margin-bottom:12px">
+  openModal(`<h2>📱 Live viewer — tablets & phones & PCs</h2>
+   ${isFile?`<div style="background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.5);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;color:#FFC107;line-height:1.7">
+    ⚠ <b>This copy of NEXPICKLE is running from a local file</b> — the QR/link below points to a placeholder and <b>other devices cannot open it</b> yet. Publish the app to GitHub Pages (or any HTTPS host) first, then this becomes a real shareable link.<br><br>
+    You <b>can test the live feed right now on this same computer</b> — tap below to open the viewer in a new tab:<br>
+    <button class="btn btn-ball btn-sm" style="margin-top:8px" onclick="window.open('${sameDeviceLink}','_blank')">🖥 Open viewer in a new tab (this device)</button></div>`
+   :`<div style="font-size:13.5px;color:var(--mut);line-height:1.7;margin-bottom:12px">
     On the <b style="color:var(--ink)">Spark Pro tablet</b> (or any Android tablet, iPad, phone, or PC), open this link in the browser — it becomes a full-screen live scoreboard, updating every point. Add it to the tablet's home screen for kiosk-style use.</div>
    <div style="text-align:center;margin-bottom:12px">
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(link)}" width="220" height="220" style="border-radius:12px;background:#fff;padding:6px" onerror="this.style.display='none'">
-   </div>
+   </div>`}
    <div class="field"><label>Viewer link (scan the QR or copy)</label>
     <input class="inp mono" style="font-size:11px" value="${esc(link)}" onclick="this.select()" readonly></div>
-   ${location.protocol==='file:'?'<div class="tag warn" style="margin-bottom:10px">Use your hosted GitHub Pages URL — a local file path cannot be opened by another device.</div>':''}
-   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script (2-second refresh). The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
+   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script (2-second refresh) — this is what actually reaches tablets and PCs; the 📡 Smart TV button is a separate, Chromecast-only mechanism and cannot target a generic tablet or computer. The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
    <button class="btn btn-p" style="margin-top:12px" onclick="closeModal()">Done — feed is live</button>`);
 }
 function initViewer(){
@@ -2986,6 +2991,7 @@ function howToCast(fileMode){
   openModal(`<h2>📡 Cast to a Smart TV</h2>
    <div style="font-size:14px;line-height:1.8;color:var(--mut)">
    ${fileMode?'<div class="tag warn" style="margin-bottom:10px">Smart-TV casting needs the hosted app (GitHub Pages URL), not a local file.</div>':''}
+   <div style="background:rgba(0,194,209,.1);border:1px solid rgba(0,194,209,.35);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--cyan)">ℹ Trying to cast to a <b>tablet, phone, or PC</b> instead of an actual Smart TV/Chromecast? Browsers can't "cast" to those — use the <b>📱 Tablet / phone</b> button on the scoreboard instead; it sends a live-updating link/QR that opens in any browser.</div>
    <b style="color:var(--ink)">Option 1 — One-tap cast (same Wi-Fi)</b><br>
    Chromecast · Google TV · Android TV · Cast-enabled displays: tap <b>📡 Smart TV</b> and pick your device. The TV opens the live board and updates with every point.<br><br>
    <b style="color:var(--ink)">Option 2 — Chrome tab cast</b><br>
