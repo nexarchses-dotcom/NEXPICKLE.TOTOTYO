@@ -2904,12 +2904,13 @@ const IS_VIEWER=new URLSearchParams(location.search).has('viewer');
    Publisher posts each score update to Apps Script (CacheService relay);
    viewer devices open ?viewer=1 and poll every 2s. Works on any browser. */
 let tabletCast=false,_lastPub=0,_pubPending=null;
+const PUB_MS=250;   // publisher → relay: near-real-time push cadence
 function publishLive(payload){
   if(!tabletCast||!CFG.gasUrl)return;
   const now=Date.now();
   const send=p=>{_lastPub=Date.now();gasPost({action:'liveSet',channel:'score',data:p,token:CFG.gasToken}).catch(()=>{})};
-  if(now-_lastPub>800){send(payload)}
-  else{clearTimeout(_pubPending);_pubPending=setTimeout(()=>send(payload),850-(now-_lastPub))}
+  if(now-_lastPub>PUB_MS){send(payload)}
+  else{clearTimeout(_pubPending);_pubPending=setTimeout(()=>send(payload),PUB_MS-(now-_lastPub)+5)}
 }
 function viewerLink(){
   const base=location.protocol==='file:'?'https://<your-user>.github.io/nexpickle/':location.origin+location.pathname;
@@ -2936,7 +2937,7 @@ function castToTablet(){
    </div>`}
    <div class="field"><label>Viewer link (scan the QR or copy)</label>
     <input class="inp mono" style="font-size:11px" value="${esc(link)}" onclick="this.select()" readonly></div>
-   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script (2-second refresh) — this is what actually reaches tablets and PCs; the 📡 Smart TV button is a separate, Chromecast-only mechanism and cannot target a generic tablet or computer. The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
+   <div style="font-size:12px;color:var(--dim);line-height:1.6">Feed relays through your own Google Apps Script and updates in real time (as fast as ~250–400ms) — this is what actually reaches tablets and PCs; the 📡 Smart TV button is a separate, Chromecast-only mechanism and cannot target a generic tablet or computer. The link grants read-only live scores — no club data. Toggle 📱 again on the scoreboard to stop publishing.</div>
    <button class="btn btn-p" style="margin-top:12px" onclick="closeModal()">Done — feed is live</button>`);
 }
 function initViewer(){
@@ -2946,15 +2947,31 @@ function initViewer(){
   const txt=document.getElementById('rxTxt');
   if(!g){txt.textContent='VIEWER: MISSING RELAY URL — OPEN THE LINK FROM THE SCORER DEVICE';return}
   txt.textContent='CONNECTING TO LIVE FEED…';
-  let lastJSON='';
+  let lastJSON='',errStreak=0,idleStreak=0;
+  // adaptive cadence: near-real-time (400ms) while a match is actively live,
+  // easing off to 1200ms when idle/waiting, and backing off further on errors —
+  // keeps the score feeling instant without hammering Apps Script all night
   async function poll(){
+    let delay=400;
     try{
       const r=await fetch(g,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'liveGet',channel:'score',token:k})});
       const j=await r.json();
-      if(j.ok&&j.data){const s=JSON.stringify(j.data);if(s!==lastJSON){lastJSON=s;rxRenderPublic(j.data)}}
-      else if(j.ok&&!j.data&&!lastJSON)txt.textContent='WAITING FOR A LIVE MATCH…';
-    }catch(e){if(!lastJSON)txt.textContent='RECONNECTING…'}
-    setTimeout(poll,2000);
+      errStreak=0;
+      if(j.ok&&j.data){
+        const s=JSON.stringify(j.data);
+        if(s!==lastJSON){lastJSON=s;rxRenderPublic(j.data);idleStreak=0;}
+        else idleStreak++;
+        delay=idleStreak>6?1200:400;      // same score for a while → ease off; fresh change → stay fast
+      }else if(j.ok&&!j.data){
+        if(!lastJSON)txt.textContent='WAITING FOR A LIVE MATCH…';
+        delay=1500;
+      }
+    }catch(e){
+      errStreak++;
+      if(!lastJSON)txt.textContent='RECONNECTING…';
+      delay=Math.min(1000*Math.pow(1.6,errStreak),8000);  // backoff if the relay is unreachable
+    }
+    setTimeout(poll,delay);
   }
   poll();
 }
